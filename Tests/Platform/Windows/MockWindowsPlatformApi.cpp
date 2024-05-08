@@ -1,10 +1,4 @@
 #include <Platform/Windows/WindowsPlatformApi.h>
 
-win::Peb* WindowsPlatformApi::getPeb() noexcept
-{
-    return nullptr;
-}
+#ifdef _WIN32
 
-void WindowsPlatformApi::debugBreak() noexcept
-{
-}
