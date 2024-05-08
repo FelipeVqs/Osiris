@@ -3,27 +3,47 @@
 #include <MemoryPatterns/PlayerPawnPatterns.h>
 #include <MemorySearch/BytePatternLiteral.h>
 
-inline OffsetToPlayerPawnImmunity PlayerPawnPatterns::offsetToPlayerPawnImmunity() const noexcept
+inline OffsetToPlayerPawnImmunity PlayerPawnPatterns::getPlayerPawnImmunityOffset() const noexcept
 {
-    return clientPatternFinder("0F B6 83 ? ? ? ? 84 C0 75 ? 41"_pat).add(3).readOffset<OffsetToPlayerPawnImmunity>();
+    const auto patternResult = clientPatternFinder("0F B6 83 ? ? ? ? 84 C0 75 ? 41"_pat);
+    if (!patternResult)
+    {
+        // Handle error
+        return {};
+    }
+
+    return patternResult.add(3).readOffset<OffsetToPlayerPawnImmunity>();
 }
 
-inline OffsetToWeaponServices PlayerPawnPatterns::offsetToWeaponServices() const noexcept
+inline OffsetToWeaponServices PlayerPawnPatterns::getWeaponServicesOffset() const noexcept
 {
-    return clientPatternFinder("48 8B 88 ? ? ? ? 48 8D 15 ? ? ? ? E8 ? ? ? ? 48"_pat).add(3).readOffset<OffsetToWeaponServices>();
+    const auto patternResult = clientPatternFinder("48 8B 88 ? ? ? ? 48 8D 15 ? ? ? ? E8 ? ? ? ? 48"_pat);
+    if (!patternResult)
+    {
+        // Handle error
+        return {};
+    }
+
+    return patternResult.add(3).readOffset<OffsetToWeaponServices>();
 }
 
-inline OffsetToPlayerController PlayerPawnPatterns::offsetToPlayerController() const noexcept
+inline OffsetToPlayerController PlayerPawnPatterns::getPlayerControllerOffset() const noexcept
 {
-    return clientPatternFinder("8B 89 ? ? ? ? 4C 89 60"_pat).add(2).readOffset<OffsetToPlayerController>();
+    const auto patternResult = clientPatternFinder("8B 89 ? ? ? ? 4C 89 60"_pat);
+    if (!patternResult)
+    {
+        // Handle error
+        return {};
+    }
+
+    return patternResult.add(2).readOffset<OffsetToPlayerController>();
 }
 
-inline OffsetToIsDefusing PlayerPawnPatterns::offsetToIsDefusing() const noexcept
+inline OffsetToIsDefusing PlayerPawnPatterns::getIsDefusingOffset() const noexcept
 {
-    return clientPatternFinder("80 BF ? ? ? ? ? 0F 85 ? ? ? ? 80 BF ? ? ? ? ? 75"_pat).add(2).readOffset<OffsetToIsDefusing>();
-}
+    const auto patternResult = clientPatternFinder("80 BF ? ? ? ? ? 0F 85 ? ? ? ? 80 BF ? ? ? ? ? 75"_pat);
+    if (!patternResult)
+    {
+        // Handle error
+        return {};
 
-inline OffsetToIsPickingUpHostage PlayerPawnPatterns::offsetToIsPickingUpHostage() const noexcept
-{
-    return clientPatternFinder("80 BF ? ? ? ? ? 0F 85 ? ? ? ? 80 BF ? ? ? ? ? 75"_pat).add(15).readOffset<OffsetToIsPickingUpHostage>();
-}
