@@ -16,30 +16,31 @@ public:
 
     ~HudInWorldPanelContainer() noexcept
     {
-        if (containerPanel.getHandle().isValid())
-            PanoramaUiEngine::onDeletePanel(containerPanel.getHandle());
+        if (containerPanel)
+            PanoramaUiEngine::onDeletePanel(containerPanel->getHandle());
     }
 
-    [[nodiscard]] PanoramaUiPanel get(HudProvider hudProvider, PanelConfigurator panelConfigurator) noexcept
+    [[nodiscard]] const PanoramaUiPanel get(HudProvider hudProvider, const PanelConfigurator& panelConfigurator) const noexcept
     {
-        if (const auto container = containerPanel.get())
-            return container;
+        if (containerPanel)
+            return *containerPanel;
         return createPanel(hudProvider, panelConfigurator);
     }
 
 private:
-    [[nodiscard]] PanoramaUiPanel createPanel(HudProvider hudProvider, PanelConfigurator panelConfigurator) noexcept
+    [[nodiscard]] const PanoramaUiPanel createPanel(HudProvider hudProvider, const PanelConfigurator& panelConfigurator) const noexcept
     {
         if (const auto hudReticle = hudProvider.getHudReticle()) {
             if (const auto panel = Panel::create("", hudReticle)) {
                 if (const auto style{PanoramaUiPanel{panel->uiPanel}.getStyle()})
                     panelConfigurator.panelStyle(*style).fitParent();
-                containerPanel = panel->uiPanel;
-                return PanoramaUiPanel{ panel->uiPanel };
+                std::unique_ptr<PanoramaUiPanel> newPanel{ panel->uiPanel };
+                containerPanel.swap(newPanel);
+                return *containerPanel;
             }
         }
         return PanoramaUiPanel{ nullptr };
     }
 
-    PanoramaPanelPointer containerPanel;
+    std::unique_ptr<PanoramaUiPanel> containerPanel;
 };
