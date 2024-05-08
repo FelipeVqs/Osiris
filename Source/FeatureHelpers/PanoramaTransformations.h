@@ -2,27 +2,44 @@
 
 #include <array>
 #include <cstddef>
+#include <initializer_list>
 
 #include <CS2/Classes/CUtlVector.h>
 #include <CS2/Classes/Panorama.h>
+#include <CS2/Classes/Transform3D.h>
 
-#include "PanelStyleSetter.h"
+namespace cs2 {
+class CTransform3D;
+}  // namespace cs2
 
-template <std::size_t N>
+using namespace std;
+using cs2::CTransform3D;
+using cs2::CUtlVector;
+
+template <size_t N>
 struct PanoramaTransformations {
-    void applyTo(const PanelStyleSetter& style) noexcept
-    {
-        cs2::CUtlVector<cs2::CTransform3D*> dummyVector;
-        dummyVector.allocationCount = N;
-        dummyVector.memory = transformations.data();
-        dummyVector.growSize = 0;
-        dummyVector.size = N;
+    void applyTo(const PanelStyleSetter& style) const noexcept;
 
-        style.setTransform3D(dummyVector);
-    }
+    array<CTransform3D*, N> transformations;
 
-    std::array<cs2::CTransform3D*, N> transformations;
+    template <typename... Args>
+    constexpr PanoramaTransformations(Args&&... args) noexcept
+        : transformations{forward<Args>(args)...} {}
+
+    constexpr PanoramaTransformations(initializer_list<CTransform3D*> il) noexcept
+        : transformations{il} {}
 };
+
+template <size_t N>
+void PanoramaTransformations<N>::applyTo(const PanelStyleSetter& style) const noexcept {
+    CUtlVector<CTransform3D*> dummyVector;
+    dummyVector.allocationCount = N;
+    dummyVector.memory = transformations.data();
+    dummyVector.growSize = 0;
+    dummyVector.size = N;
+
+    style.setTransform3D(dummyVector);
+}
 
 template <typename... Args>
 PanoramaTransformations(Args...) -> PanoramaTransformations<sizeof...(Args)>;
