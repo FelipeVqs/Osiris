@@ -10,23 +10,35 @@ namespace cs2
     struct IMemAlloc;
 }
 
-struct Tier0Dll : DynamicLibrary {
+class Tier0Dll : public DynamicLibrary {
+public:
     Tier0Dll() noexcept
         : DynamicLibrary{ cs2::TIER0_DLL }
     {
     }
 
-    [[nodiscard]] cs2::CUtlFilenameSymbolTable::String* filenameSymbolTableString() const noexcept
+    [[nodiscard]] const cs2::CUtlFilenameSymbolTable::String* filenameSymbolTableString() const noexcept
     {
+        return getFunctionAddress<cs2::CUtlFilenameSymbolTable::String>("?String@CUtlFilenameSymbolTable@@QEAA_NAEBIPEADH@Z")
 #if IS_WIN64()
-        return getFunctionAddress("?String@CUtlFilenameSymbolTable@@QEAA_NAEBIPEADH@Z").as<cs2::CUtlFilenameSymbolTable::String*>();
+            .value();
 #elif IS_LINUX()
-        return getFunctionAddress("_ZN23CUtlFilenameSymbolTable6StringERKjPci").as<cs2::CUtlFilenameSymbolTable::String*>();
+        .value_or(nullptr);
 #endif
     }
 
-    [[nodiscard]] cs2::IMemAlloc** memAlloc() const noexcept
+    [[nodiscard]] const cs2::IMemAlloc** memAlloc() const noexcept
     {
-        return getFunctionAddress("g_pMemAlloc").as<cs2::IMemAlloc**>();
+        return getFunctionAddress<cs2::IMemAlloc**>("g_pMemAlloc").value();
+    }
+
+private:
+    template<typename T>
+    std::unique_ptr<T> getFunctionAddress(const char* name) const noexcept
+    {
+        auto addr = getFunctionAddress(name);
+        if (addr)
+            return std::unique_ptr<T>(reinterpret_cast<T>(addr));
+        return std::unique_ptr<T>();
     }
 };
