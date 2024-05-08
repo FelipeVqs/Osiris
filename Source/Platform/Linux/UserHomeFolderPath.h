@@ -19,5 +19,6 @@ private:
         return {};
     }
 
-    ConstString homePath = getHomePath();
+    UserHomeFolderPath() : homePath(getHomePath()) {}
+    ConstString homePath;
 };
