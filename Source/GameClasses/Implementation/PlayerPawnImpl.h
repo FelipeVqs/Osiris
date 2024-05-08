@@ -3,18 +3,19 @@
 #include <MemoryPatterns/PlayerPawnPatterns.h>
 
 struct PlayerPawnImpl {
+public:
     explicit PlayerPawnImpl(const PlayerPawnPatterns& playerPawnPatterns) noexcept
-        : offsetToPlayerPawnImmunity{playerPawnPatterns.offsetToPlayerPawnImmunity()}
-        , offsetToWeaponServices{playerPawnPatterns.offsetToWeaponServices()}
-        , offsetToPlayerController{playerPawnPatterns.offsetToPlayerController()}
-        , offsetToIsDefusing{playerPawnPatterns.offsetToIsDefusing()}
-        , offsetToIsPickingUpHostage{playerPawnPatterns.offsetToIsPickingUpHostage()}
-    {
+        : offsetToPlayerPawnImmunity{ playerPawnPatterns.getOffsetToPlayerPawnImmunity() }
+        , offsetToWeaponServices{ playerPawnPatterns.getOffsetToWeaponServices() }
+        , offsetToPlayerController{ playerPawnPatterns.getOffsetToPlayerController() }
+        , offsetToIsDefusing{ playerPawnPatterns.getOffsetToIsDefusing() }
+        , offsetToIsPickingUpHostage{ playerPawnPatterns.getOffsetToIsPickingUpHostage() }
+    {}
+
+    OffsetToPlayerPawnImmunity getOffsetToPlayerPawnImmunity() const noexcept {
+        return offsetToPlayerPawnImmunity;
     }
 
-    OffsetToPlayerPawnImmunity offsetToPlayerPawnImmunity;
-    OffsetToWeaponServices offsetToWeaponServices;
-    OffsetToPlayerController offsetToPlayerController;
-    OffsetToIsDefusing offsetToIsDefusing;
-    OffsetToIsPickingUpHostage offsetToIsPickingUpHostage;
-};
+    OffsetToWeaponServices getOffsetToWeaponServices() const noexcept {
+        return offsetToWeaponServices;
+
