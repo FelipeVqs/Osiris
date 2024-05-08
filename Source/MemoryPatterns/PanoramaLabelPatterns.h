@@ -5,9 +5,24 @@
 #include <MemorySearch/PatternFinder.h>
 
 struct PanoramaLabelPatterns {
-    [[nodiscard]] cs2::CLabel::Constructor* constructor() const noexcept;
-    [[nodiscard]] cs2::CLabel::setTextInternal setTextInternal() const noexcept;
-    [[nodiscard]] std::uint32_t* size() const noexcept;
+    cs2::CLabel::Constructor* constructor() const noexcept;
+    cs2::CLabel::setTextInternal* setTextInternal() const noexcept;
+    std::uint32_t* size() const noexcept;
 
     const PatternFinder<PatternNotFoundLogger>& clientPatternFinder;
+
+    PanoramaLabelPatterns(const PatternFinder<PatternNotFoundLogger>& patternFinder) noexcept
+        : clientPatternFinder(patternFinder) {}
+
+    [[nodiscard]] cs2::CLabel::Constructor* constructor() const noexcept {
+        // implementation here
+    }
+
+    [[nodiscard]] cs2::CLabel::setTextInternal* setTextInternal() const noexcept {
+        // implementation here
+    }
+
+    [[nodiscard]] std::uint32_t* size() const noexcept {
+        // implementation here
+    }
 };
