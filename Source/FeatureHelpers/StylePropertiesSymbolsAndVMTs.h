@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <concepts>
+#include <type_traits>
 
 #include <CS2/Classes/Panorama.h>
 #include <Platform/VmtFinder.h>
@@ -9,21 +11,22 @@
 #include "StylePropertySymbolMap.h"
 
 template <typename... StyleProperties>
+requires (std::is_base_of_v<cs2::CStyleProperty, StyleProperties> && ...)
 struct StylePropertiesSymbolsAndVMTsBase {
     StylePropertiesSymbolsAndVMTsBase(StylePropertySymbolMap symbolMap, const VmtFinder& panoramaVmtFinder) noexcept
         : symbols{symbolMap.findSymbol(StyleProperties::kName)...}
         , vmts{panoramaVmtFinder.findVmt(StyleProperties::kMangledTypeName)...}
     {
+        static_assert(sizeof...(StyleProperties) == symbols.size(), "Number of StyleProperties must match the size of symbols array");
+        static_assert(sizeof...(StyleProperties) == vmts.size(), "Number of StyleProperties must match the size of vmts array");
     }
 
-    template <typename StyleProperty>
-    [[nodiscard]] cs2::CStyleSymbol getSymbol() const noexcept
+    const cs2::CStyleSymbol getSymbol() const noexcept requires std::is_same_v<StyleProperties, StyleProperty>
     {
         return symbols[utils::typeIndex<StyleProperty, std::tuple<StyleProperties...>>()];
     }
 
-    template <typename StyleProperty>
-    [[nodiscard]] const void* getVmt() const noexcept
+    const void* getVmt() const noexcept requires std::is_same_v<StyleProperties, StyleProperty>
     {
         return vmts[utils::typeIndex<StyleProperty, std::tuple<StyleProperties...>>()];
     }
