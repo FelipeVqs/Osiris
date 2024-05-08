@@ -2,48 +2,74 @@
 
 #include <cassert>
 #include <cstddef>
+#include <new>
 #include <utility>
 
 template <typename T>
 struct ManuallyDestructible {
+    static_assert(std::is_object<T>::value, "T must be an object type");
+
     ManuallyDestructible() = default;
+
     ManuallyDestructible(const ManuallyDestructible&) = delete;
     ManuallyDestructible(ManuallyDestructible&&) = delete;
+
     ManuallyDestructible& operator=(const ManuallyDestructible&) = delete;
     ManuallyDestructible& operator=(ManuallyDestructible&&) = delete;
 
     template <typename... Args>
-    void initialize(Args&&... args) noexcept
+    ManuallyDestructible(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+        : object_(new (&storage_) T(std::forward<Args>(args)...))
     {
-        assert(!isInitialized());
-        object = new (&storage) T(std::forward<Args>(args)...);
     }
 
-    [[nodiscard]] T* operator->() noexcept
+    ManuallyDestructible(T* ptr) noexcept
+        : object_(ptr)
+    {
+    }
+
+    ManuallyDestructible(ManuallyDestructible&& other) noexcept
+        : ManuallyDestructible()
+    {
+        swap(other);
+    }
+
+    ~ManuallyDestructible() noexcept
+    {
+        reset();
+    }
+
+    template <typename U, typename... Args>
+    void emplace(Args&&... args) noexcept(std::is_nothrow_constructible<U, Args...>::value)
+    {
+        reset();
+        new (&storage_) U(std::forward<Args>(args)...);
+        object_ = reinterpret_cast<T*>(&storage_);
+    }
+
+    template <typename U>
+    void move_from(ManuallyDestructible<U>&& other) noexcept
+    {
+        assert(this != std::addressof(other));
+        reset();
+        new (&storage_) T(std::move(*other));
+        object_ = reinterpret_cast<T*>(&storage_);
+    }
+
+    T* operator->() noexcept
     {
         assert(isInitialized());
-        return object;
+        return object_;
     }
 
-    [[nodiscard]] T& operator*() noexcept
+    T& operator*() noexcept
     {
         assert(isInitialized());
-        return *object;
+        return *object_;
     }
 
-    void destroy() noexcept
+    const T* operator->() const noexcept
     {
         assert(isInitialized());
-        object->~T();
-        object = nullptr;
-    }
+        return object_;
 
-    [[nodiscard]] bool isInitialized() const noexcept
-    {
-        return object != nullptr;
-    }
-
-private:
-    T* object{nullptr};
-    alignas(alignof(T)) std::byte storage[sizeof(T)]{};
-};
