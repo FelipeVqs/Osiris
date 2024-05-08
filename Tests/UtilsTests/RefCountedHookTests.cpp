@@ -1,28 +1,27 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include <Utils/RefCountedHook.h>
 
 namespace
 {
 
 struct MockHook : RefCountedHook<MockHook> {
-    MOCK_METHOD(bool, isInstalled, (), (const noexcept));
-    MOCK_METHOD(void, install, (), (noexcept));
-    MOCK_METHOD(void, uninstall, (), (noexcept));
+    MOCK_METHOD(bool, isInstalled, (), (const noexcept) = 0);
+    MOCK_METHOD(void, install, (), (noexcept) = 0);
+    MOCK_METHOD(void, uninstall, (), (noexcept) = 0);
 };
 
 class RefCountedHookTest : public testing::Test {
 protected:
     testing::StrictMock<MockHook> hook;
-};
 
-using testing::Return;
+    void SetUp() override { hook.incrementReferenceCount(); }
+    void TearDown() override { hook.decrementReferenceCount(); }
+};
 
 TEST_F(RefCountedHookTest, WillBeInstalledIfReferenced) {
     hook.incrementReferenceCount();
-    hook.incrementReferenceCount();
-    hook.decrementReferenceCount();
+    hook.update();
 
     EXPECT_CALL(hook, isInstalled()).WillOnce(Return(false));
     EXPECT_CALL(hook, install());
@@ -30,8 +29,7 @@ TEST_F(RefCountedHookTest, WillBeInstalledIfReferenced) {
 }
 
 TEST_F(RefCountedHookTest, WillNotBeInstalledIfNotReferenced) {
-    hook.incrementReferenceCount();
-    hook.decrementReferenceCount();
+    hook.update();
 
     EXPECT_CALL(hook, isInstalled()).WillOnce(Return(false));
     EXPECT_CALL(hook, install()).Times(0);
@@ -39,8 +37,7 @@ TEST_F(RefCountedHookTest, WillNotBeInstalledIfNotReferenced) {
 }
 
 TEST_F(RefCountedHookTest, WillBeUninstalledIfNotReferenced) {
-    hook.incrementReferenceCount();
-    hook.decrementReferenceCount();
+    hook.update();
 
     EXPECT_CALL(hook, isInstalled()).WillOnce(Return(true));
     EXPECT_CALL(hook, uninstall());
@@ -49,8 +46,7 @@ TEST_F(RefCountedHookTest, WillBeUninstalledIfNotReferenced) {
 
 TEST_F(RefCountedHookTest, WillNotBeUninstalledIfReferenced) {
     hook.incrementReferenceCount();
-    hook.incrementReferenceCount();
-    hook.decrementReferenceCount();
+    hook.update();
 
     EXPECT_CALL(hook, isInstalled()).WillOnce(Return(true));
     EXPECT_CALL(hook, uninstall()).Times(0);
@@ -58,6 +54,8 @@ TEST_F(RefCountedHookTest, WillNotBeUninstalledIfReferenced) {
 }
 
 TEST_F(RefCountedHookTest, WillBeForceUninstalledWhenInstalled) {
+    hook.install();
+
     EXPECT_CALL(hook, isInstalled()).WillOnce(Return(true));
     EXPECT_CALL(hook, uninstall());
     hook.forceUninstall();
@@ -69,4 +67,9 @@ TEST_F(RefCountedHookTest, WillNotBeForceUninstalledWhenNotInstalled) {
     hook.forceUninstall();
 }
 
+}  // namespace
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleMock(&argc, argv);
+    return RUN_ALL_TESTS();
 }
