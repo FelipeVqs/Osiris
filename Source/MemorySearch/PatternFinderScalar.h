@@ -1,19 +1,23 @@
 #pragma once
 
-#include <cstddef>
+#ifdef __cpp_lib_span
 #include <span>
+#else
+#include <span> // In case of C++20
+#endif
+
 #include <string_view>
 
 #include "BytePattern.h"
 
 class PatternFinderScalar {
 public:
-    PatternFinderScalar(std::span<const std::byte> bytes, BytePattern pattern)
-        : bytes{ bytes }, pattern{ pattern }
+    PatternFinderScalar(std::span<const std::byte> bytes, BytePattern pattern) noexcept
+        : bytes{ bytes }, pattern{ pattern }, currentPos{ 0 }
     {
     }
 
-    const std::byte* operator()() noexcept
+    const std::byte* find() const noexcept
     {
         while (remainingBytes() >= pattern.length()) {
             if (pattern.matches(bytes.subspan(currentPos, pattern.length())))
@@ -29,8 +33,7 @@ private:
         return bytes.size() - currentPos;
     }
 
-    std::size_t currentPos = 0;
+    std::size_t currentPos;
     std::span<const std::byte> bytes;
     BytePattern pattern;
 };
-
