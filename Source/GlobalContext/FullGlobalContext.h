@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FULL_GLOBAL_CONTEXT_H
+#define FULL_GLOBAL_CONTEXT_H
 
 #include <CS2/Classes/CLoopModeGame.h>
 #include <GameClasses/Implementation/GameClassImplementations.h>
@@ -30,13 +31,25 @@
 #include <Platform/DynamicLibrary.h>
 #include <Platform/VmtFinder.h>
 #include <Vmt/VmtLengthCalculator.h>
+#include <functional>
+#include <memory>
+#include <optional>
 
 #include "PeepEventsHookResult.h"
 
 #include <CS2/Classes/ConVarTypes.h>
 
-struct FullGlobalContext {
-    FullGlobalContext(PeepEventsHook peepEventsHook, DynamicLibrary clientDLL, DynamicLibrary panoramaDLL, const PatternFinder<PatternNotFoundLogger>& clientPatternFinder, const PatternFinder<PatternNotFoundLogger>& panoramaPatternFinder, const PatternFinder<PatternNotFoundLogger>& soundSystemPatternFinder, const PatternFinder<PatternNotFoundLogger>& tier0PatternFinder, const FileSystemPatterns& fileSystemPatterns) noexcept
+class FullGlobalContext {
+public:
+    FullGlobalContext(
+        PeepEventsHook peepEventsHook,
+        DynamicLibrary clientDLL,
+        DynamicLibrary panoramaDLL,
+        const PatternFinder<PatternNotFoundLogger>& clientPatternFinder,
+        const PatternFinder<PatternNotFoundLogger>& panoramaPatternFinder,
+        const PatternFinder<PatternNotFoundLogger>& soundSystemPatternFinder,
+        const PatternFinder<PatternNotFoundLogger>& tier0PatternFinder,
+        const FileSystemPatterns& fileSystemPatterns) noexcept
         : _gameClasses{
             clientPatternFinder,
             panoramaPatternFinder,
@@ -54,8 +67,16 @@ struct FullGlobalContext {
             SoundSystemPatterns{soundSystemPatternFinder},
             VmtFinder{panoramaDLL.getVmtFinderParams()},
             VmtFinder{clientDLL.getVmtFinderParams()}}
+        , featuresStates{std::make_unique<FeaturesStatesImpl>()}
+        , panoramaGUI{featuresStates, hooks, featureHelpers}
     {
     }
+
+    FullGlobalContext(FullGlobalContext&&) noexcept = default;
+    FullGlobalContext& operator=(FullGlobalContext&&) noexcept = default;
+
+    FullGlobalContext(const FullGlobalContext&) = delete;
+    FullGlobalContext& operator=(const FullGlobalContext&) = delete;
 
     [[nodiscard]] const GameClassImplementations& gameClasses() const noexcept
     {
@@ -66,7 +87,7 @@ struct FullGlobalContext {
     {
         return featureHelpers;
     }
-    
+
     void onRenderStart(cs2::CViewRender* thisptr) noexcept
     {
         hooks.viewRenderHook.getOriginalOnRenderStart()(thisptr);
@@ -76,7 +97,7 @@ struct FullGlobalContext {
         soundWatcher.update();
         features(dependencies).soundFeatures().runOnViewMatrixUpdate();
 
-        PlayerInformationThroughWalls playerInformationThroughWalls{featuresStates.visualFeaturesStates.playerInformationThroughWallsState, dependencies};
+        PlayerInformationThroughWalls playerInformationThroughWalls{featuresStates->visualFeaturesStates.playerInformationThroughWallsState, dependencies};
         RenderingHookEntityLoop{dependencies, playerInformationThroughWalls}.run();
         playerInformationThroughWalls.hideUnusedPanels();
     }
@@ -107,13 +128,14 @@ struct FullGlobalContext {
 private:
     [[nodiscard]] Features features(HookDependencies& dependencies) noexcept
     {
-        return Features{featuresStates, featureHelpers, hooks, dependencies};
+        return Features{*featuresStates, featureHelpers, hooks, dependencies};
     }
 
     GameClassImplementations _gameClasses;
     Hooks hooks;
     FeatureHelpers featureHelpers;
-    FeaturesStates featuresStates;
-public:
+    std::unique_ptr<FeaturesStatesImpl> featuresStates;
     PanoramaGUI panoramaGUI;
 };
+
+#endif // FULL_GLOBAL_CONTEXT_H
