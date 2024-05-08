@@ -1,22 +1,35 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
+template <typename R, typename... Args>
 struct GenericFunctionPointer {
-    template <typename FunctionPointer>
-        requires std::is_pointer_v<FunctionPointer> && std::is_function_v<std::remove_pointer_t<FunctionPointer>>
-    explicit(false) GenericFunctionPointer(FunctionPointer function) noexcept
-        : value{ reinterpret_cast<void(*)()>(function) }
+    template <typename F>
+    explicit(std::is_convertible_v<F, R(*)(Args...)>)
+    GenericFunctionPointer(F function) noexcept
+        : value_{reinterpret_cast<R(*)(Args...)>(function)}
     {
     }
 
-    template <typename FunctionPointer>
-        requires std::is_pointer_v<FunctionPointer> && std::is_function_v<std::remove_pointer_t<FunctionPointer>>
-    explicit(false) operator FunctionPointer() noexcept
+    template <typename F>
+    explicit(std::is_convertible_v<F, R(*)(Args...)>)
+    operator F() const noexcept
     {
-        return reinterpret_cast<FunctionPointer>(value);
+        return reinterpret_cast<F>(value_);
+    }
+
+    R operator()(Args... args) const noexcept
+    {
+        return reinterpret_cast<R(*)(Args...)>(value_)(std::forward<Args>(args)...);
     }
 
 private:
-    void (*value)();
+    R (*value_)(Args...);
 };
+
+template <typename R, typename... Args>
+GenericFunctionPointer<R, Args...> make_generic_function_pointer(R(*function)(Args...))
+{
+    return function;
+}
