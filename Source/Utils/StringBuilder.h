@@ -41,7 +41,7 @@ public:
 
     [[nodiscard]] std::string_view string() const noexcept
     {
-        return std::string_view{ buffer.data(), writePosition };
+        return std::string_view{ buffer.data(), writePosition - buffer.data() };
     }
 
     [[nodiscard]] const char* cstring() noexcept
@@ -91,7 +91,7 @@ private:
 
     void putSingle(std::string_view str)
     {
-        const auto sizeToCopy = (std::min)(str.size(), unusedSpace());
+        const auto sizeToCopy = std::min(str.size(), unusedSpace());
         writePosition = std::copy_n(str.data(), sizeToCopy, writePosition);
     }
 
@@ -100,7 +100,7 @@ private:
         return &buffer[capacityExcludingNullTerminator()];
     }
 
-    [[nodiscard]] std::size_t unusedSpace() noexcept
+    [[nodiscard]] std::size_t unusedSpace() const noexcept
     {
         return writeEndPosition() - writePosition;
     }
@@ -116,10 +116,7 @@ private:
 
 template <std::size_t Capacity>
 struct StringBuilderStorage {
-    StringBuilderStorage()
-    {
-        // prevents zeroing the buffer in zero initialization
-    }
+    StringBuilderStorage() = default; // use default initialization instead of zero initialization
 
     StringBuilder builder()
     {
