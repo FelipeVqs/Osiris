@@ -11,32 +11,32 @@
 class PatternSearchResult {
 public:
     PatternSearchResult(GenericPointer base, std::size_t patternFoundOffset, std::span<const std::byte> foundPatternBytes) noexcept
-        : base{base}
-        , patternFoundOffset{patternFoundOffset}
-        , foundPatternBytes{foundPatternBytes}
+        : base_{base}
+        , patternFoundOffset_{patternFoundOffset}
+        , foundPatternBytes_{foundPatternBytes}
     {
-        assert(base);
+        assert(base_);
     }
 
     PatternSearchResult() = default;
 
     PatternSearchResult& add(std::size_t offset) noexcept
     {
-        if (base) {
-            extraOffset += offset;
-            assert(extraOffset < foundPatternBytes.size());
+        if (base_) {
+            extraOffset_ += offset;
+            assert(extraOffset_ < foundPatternBytes_.size());
         }
         return *this;
     }
 
     [[nodiscard]] GenericPointer abs() const noexcept
     {
-        if (base) {
+        if (base_) {
             using OffsetType = std::int32_t;
             OffsetType offset;
-            assert(foundPatternBytes.size() - extraOffset >= sizeof(OffsetType));
-            std::memcpy(&offset, foundPatternBytes.data() + extraOffset, sizeof(OffsetType));
-            return base.as<const std::byte*>() + patternFoundOffset + extraOffset + sizeof(OffsetType) + offset;
+            assert(foundPatternBytes_.size() - extraOffset_ >= sizeof(OffsetType));
+            std::memcpy(&offset, foundPatternBytes_.data() + extraOffset_, sizeof(OffsetType));
+            return base_.as<const std::byte*>() + patternFoundOffset_ + extraOffset_ + sizeof(OffsetType) + offset;
         }
         return {};
     }
@@ -44,10 +44,10 @@ public:
     template <typename FieldOffsetType>
     [[nodiscard]] FieldOffsetType readOffset() const noexcept
     {
-        if (base) {
+        if (base_) {
             typename FieldOffsetType::OffsetType result;
-            assert(foundPatternBytes.size() - extraOffset >= sizeof(result));
-            std::memcpy(&result, foundPatternBytes.data() + extraOffset, sizeof(result));
+            assert(foundPatternBytes_.size() - extraOffset_ >= sizeof(result));
+            std::memcpy(&result, foundPatternBytes_.data() + extraOffset_, sizeof(result));
             return FieldOffsetType{result};
         }
         return {};
@@ -56,14 +56,22 @@ public:
     template <typename T>
     [[nodiscard]] T as() const noexcept
     {
-        if (base)
-            return T(base.as<const std::byte*>() + patternFoundOffset + extraOffset);
-        return T(base.as<void*>());
+        if (base_)
+            return T(base_.as<const std::byte*>() + patternFoundOffset_ + extraOffset_);
+        return T(base_.as<void*>());
     }
 
+    // Disable implicit copying
+    PatternSearchResult(const PatternSearchResult&) = default;
+    PatternSearchResult& operator=(const PatternSearchResult&) = delete;
+
+    // Disable implicit moving
+    PatternSearchResult(PatternSearchResult&&) = delete;
+    PatternSearchResult& operator=(PatternSearchResult&&) = delete;
+
 private:
-    GenericPointer base{};
-    std::size_t patternFoundOffset;
-    std::span<const std::byte> foundPatternBytes;
-    std::size_t extraOffset{0};
+    GenericPointer base_;
+    std::size_t patternFoundOffset_;
+    std::span<const std::byte> foundPatternBytes_;
+    std::size_t extraOffset_{0};
 };
