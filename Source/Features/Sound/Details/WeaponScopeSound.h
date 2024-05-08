@@ -7,12 +7,15 @@
 #include <CS2/Constants/SoundNames.h>
 
 struct WeaponScopeSound {
-    static constexpr auto kFadeAwayStart = 1.8f;
-    static constexpr auto kFadeAwayDuration = 0.8f;
-    static constexpr auto kMinScale = 0.5f;
+    static constexpr float kFadeAwayStart = 1.8f;
+    static constexpr float kFadeAwayDuration = 0.8f;
+    static constexpr float kMinScale = 0.5f;
 
-    [[nodiscard]] static constexpr bool isSound(std::string_view soundName) noexcept
-    {
-        return soundName.starts_with(cs2::kWeaponSoundsPath) && soundName.find(cs2::kZoomSoundNamePart) != std::string_view::npos;
+    [[nodiscard]] static constexpr bool isSound(std::string_view soundName) noexcept {
+        const std::string_view weapon_sounds_path = cs2::kWeaponSoundsPath;
+        const std::string_view zoom_sound_name_part = cs2::kZoomSoundNamePart;
+
+        return soundName.starts_with(weapon_sounds_path) &&
+               soundName.find(zoom_sound_name_part) != std::string_view::npos;
     }
 };
