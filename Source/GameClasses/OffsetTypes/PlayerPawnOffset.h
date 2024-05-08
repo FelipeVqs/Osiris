@@ -8,8 +8,8 @@
 template <typename FieldType, typename OffsetType>
 using PlayerPawnOffset = FieldOffset<cs2::C_CSPlayerPawn, FieldType, OffsetType>;
 
-using OffsetToPlayerPawnImmunity = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bGunGameImmunity, std::int32_t>;
-using OffsetToWeaponServices = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_pWeaponServices, std::int32_t>;
-using OffsetToPlayerController = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_hController, std::int32_t>;
-using OffsetToIsDefusing = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bIsDefusing, std::int32_t>;
-using OffsetToIsPickingUpHostage = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bIsGrabbingHostage, std::int32_t>;
+using ImmunityOffset = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bGunGameImmunity, std::uint32_t>;
+using WeaponServicesOffset = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_pWeaponServices, std::uint32_t>;
+using PlayerControllerOffset = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_hController, std::uint32_t>;
+using IsDefusingOffset = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bIsDefusing, std::uint32_t>;
+using IsPickingUpHostageOffset = PlayerPawnOffset<cs2::C_CSPlayerPawn::m_bIsGrabbingHostage, std::uint32_t>;
