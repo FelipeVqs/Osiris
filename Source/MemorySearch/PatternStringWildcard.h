@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr auto kPatternStringWildcard{'?'};
+constexpr wchar_t kPatternStringWildcard = L'?';
