@@ -7,6 +7,13 @@
 class LoopModeGameHook;
 
 struct VisualFeatures {
+    // Prevents instantiation of the class from outside.
+    VisualFeatures(const VisualFeatures&) = delete;
+    VisualFeatures& operator=(const VisualFeatures&) = delete;
+
+    // Returns a new instance of the VisualFeatures class.
+    static VisualFeatures create(VisualFeaturesStates& states, FeatureHelpers& helpers, ViewRenderHook& viewRenderHook) noexcept;
+
     [[nodiscard]] PlayerInformationThroughWallsToggle playerInformationThroughWalls() const noexcept
     {
         return PlayerInformationThroughWallsToggle{states.playerInformationThroughWallsState, helpers.hudInWorldPanelContainer, viewRenderHook, helpers.panelConfigurator(), helpers.hudProvider};
@@ -47,7 +54,18 @@ struct VisualFeatures {
         return HostagePickupIconToggle{states.playerInformationThroughWallsState.playerStateIconsToShow};
     }
 
+    // The visual features states.
     VisualFeaturesStates& states;
+
+    // The feature helpers.
     FeatureHelpers& helpers;
+
+    // The view render hook.
     ViewRenderHook& viewRenderHook;
 };
+
+// Returns a new instance of the VisualFeatures class.
+VisualFeatures VisualFeatures::create(VisualFeaturesStates& states, FeatureHelpers& helpers, ViewRenderHook& viewRenderHook) noexcept
+{
+    return VisualFeatures{states, helpers, viewRenderHook};
+}
