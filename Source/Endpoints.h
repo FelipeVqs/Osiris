@@ -7,22 +7,27 @@
 extern "C"
 {
 
+// Returns the original `SDL_PeepEvents` function, or a null pointer if the hook has been unloaded
 sdl3::SDL_PeepEvents* SDLHook_PeepEvents_cpp() noexcept
 {
-    const auto [original, shouldUnload] {GlobalContext::instance().peepEventsHook()};
-    if (shouldUnload)
-        GlobalContext::destroyInstance();
+    auto& globalContext = GlobalContext::instance();
+    if (!globalContext) {
+        // Handle error
+        return nullptr;
+    }
+
+    const auto [original, shouldUnload] = globalContext.peepEventsHook();
+    if (shouldUnload) {
+        globalContext.destroyInstance();
+    }
     return original;
 }
 
+// Returns the `getWorldSession` function with the specified return address hooked, or the original function if the hook has been unloaded
 cs2::CLoopModeGame::getWorldSession LoopModeGameHook_getWorldSession_cpp(const void* returnAddress) noexcept
 {
-    return GlobalContext::instance().fullContext().getWorldSessionHook(ReturnAddress{returnAddress});
-}
+    auto& globalContext = GlobalContext::instance();
+    if (!globalContext) {
+        // Handle error
+        return {};
 
-void ViewRenderHook_onRenderStart_cpp(cs2::CViewRender* thisptr) noexcept
-{
-    GlobalContext::instance().fullContext().onRenderStart(thisptr);
-}
-
-}
