@@ -3,96 +3,78 @@
 #include <Features/Features.h>
 #include <FeatureHelpers/TogglableFeature.h>
 #include <Utils/StringParser.h>
+#include <map>
+#include <cctype>
 
 struct SetCommandHandler {
     SetCommandHandler(StringParser& parser, Features features) noexcept
         : parser{parser}
-        , features{features}
+        , features{std::move(features)}
     {
     }
 
     void operator()() noexcept
     {
-        if (const auto section = parser.getLine('/'); section == "hud") {
-            handleHudSection();
-        } else if (section == "visuals") {
-            handleVisualsSection();
-        } else if (section == "sound") {
-            handleSoundSection();
+        const auto section = parser.getLine('/');
+        if (handlers.count(section)) {
+            handlers[section](parser.getLine('/'));
         }
     }
 
 private:
-    void handleHudSection() const noexcept
+    void handleHudSection(const std::string& feature) const noexcept
     {
-        if (const auto feature = parser.getLine('/'); feature == "bomb_timer") {
-            handleTogglableFeature(features.hudFeatures().bombTimer());
-        } else if (feature == "defusing_alert") {
-            handleTogglableFeature(features.hudFeatures().defusingAlert());
-        } else if (feature == "preserve_killfeed") {
-            handleTogglableFeature(features.hudFeatures().killfeedPreserver());
-        }
+        handleFeature(features.hudFeatures().bombTimer(), feature, 'b');
+        handleFeature(features.hudFeatures().defusingAlert(), feature, 'd');
+        handleFeature(features.hudFeatures().killfeedPreserver(), feature, 'p');
     }
 
-    void handleSoundSection() const noexcept
+    void handleSoundSection(const std::string& feature) const noexcept
     {
-        if (const auto feature = parser.getLine('/'); feature == "visualize_player_footsteps") {
-            handleTogglableFeature(features.soundFeatures().footstepVisualizer());
-        } else if (feature == "visualize_bomb_plant") {
-            handleTogglableFeature(features.soundFeatures().bombPlantVisualizer());
-        } else if (feature == "visualize_bomb_beep") {
-            handleTogglableFeature(features.soundFeatures().bombBeepVisualizer());
-        } else if (feature == "visualize_bomb_defuse") {
-            handleTogglableFeature(features.soundFeatures().bombDefuseVisualizer());
-        } else if (feature == "visualize_scope_sound") {
-            handleTogglableFeature(features.soundFeatures().weaponScopeVisualizer());
-        } else if (feature == "visualize_reload_sound") {
-            handleTogglableFeature(features.soundFeatures().weaponReloadVisualizer());
-        }
+        handleTogglableFeature(features.soundFeatures().footstepVisualizer(), feature, 'f');
+        handleTogglableFeature(features.soundFeatures().bombPlantVisualizer(), feature, 'b');
+        handleTogglableFeature(features.soundFeatures().bombBeepVisualizer(), feature, 'e');
+        handleTogglableFeature(features.soundFeatures().bombDefuseVisualizer(), feature, 'D');
+        handleTogglableFeature(features.soundFeatures().weaponScopeVisualizer(), feature, 's');
+        handleTogglableFeature(features.soundFeatures().weaponReloadVisualizer(), feature, 'r');
     }
 
-    void handleVisualsSection() const noexcept
+    void handleVisualsSection(const std::string& feature) const noexcept
     {
-        if (const auto feature = parser.getLine('/'); feature == "player_information_through_walls") {
-            handleFeature(features.visualFeatures().playerInformationThroughWalls());
-        } else if (feature == "player_info_position") {
-            handleTogglableFeature(features.visualFeatures().playerPositionToggle());
-        } else if (feature == "player_info_position_color") {
-            handleFeature(features.visualFeatures().playerPositionArrowColorToggle());
-        } else if (feature == "player_info_health") {
-            handleTogglableFeature(features.visualFeatures().playerHealthToggle());
-        } else if (feature == "player_info_health_color") {
-            handleFeature(features.visualFeatures().playerHealthTextColorToggle());
-        } else if (feature == "player_info_weapon") {
-            handleTogglableFeature(features.visualFeatures().playerActiveWeaponToggle());
-        } else if (feature == "player_info_defuse") {
-            handleFeature(features.visualFeatures().playerDefuseIconToggle());
-        } else if (feature == "player_info_hostage_pickup") {
-            handleFeature(features.visualFeatures().hostagePickupIconToggle());
-        }
+        handleFeature(features.visualFeatures().playerInformationThroughWalls(), feature, 'w');
+        handleTogglableFeature(features.visualFeatures().playerPositionToggle(), feature, 'W');
+        handleFeature(features.visualFeatures().playerPositionArrowColorToggle(), feature, 'c');
+        handleTogglableFeature(features.visualFeatures().playerHealthToggle(), feature, 'h');
+        handleFeature(features.visualFeatures().playerHealthTextColorToggle(), feature, 'H');
+        handleTogglableFeature(features.visualFeatures().playerActiveWeaponToggle(), feature, 'a');
+        handleFeature(features.visualFeatures().playerDefuseIconToggle(), feature, 'i');
+        handleFeature(features.visualFeatures().hostagePickupIconToggle(), feature, 't');
     }
 
-    template <typename Feature>
-    void handleFeature(Feature&& feature) const noexcept
+    template <typename Feature, typename = std::enable_if_t<std::is_base_of_v<Feature, TogglableFeature<Feature>>>>
+    void handleTogglableFeature(Feature&& feature, const std::string&, char) const noexcept
     {
-        feature.update(parser.getChar());
-    }
-
-    template <typename Feature>
-    void handleTogglableFeature(TogglableFeature<Feature>&& feature) const noexcept
-    {
-        switch (parser.getChar()) {
-        case '1':
+        if (parser.getChar() == '1') {
             feature.disable();
-            break;
-        case '0':
+        } else if (parser.getChar() == '0') {
             feature.enable();
-            break;
-        default:
-            break;
+        }
+    }
+
+    template <typename Feature>
+    void handleFeature(Feature&& feature, const std::string& param, char flag) const noexcept
+    {
+        if (param[0] == flag) {
+            feature.update(param[1]);
         }
     }
 
     StringParser& parser;
     Features features;
+
+    std::map<std::string, void (SetCommandHandler::*)(const std::string&)> handlers = {
+        {"hud", &SetCommandHandler::handleHudSection},
+        {"visuals", &SetCommandHandler::handleVisualsSection},
+        {"sound", &SetCommandHandler::handleSoundSection},
+    };
 };
