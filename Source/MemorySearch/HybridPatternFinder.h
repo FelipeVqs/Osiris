@@ -10,22 +10,22 @@
 #include "PatternFinderScalar.h"
 #include "PatternFinderSIMD.h"
 
-class HybridPatternFinder {
+class HybridPatternFinder final {
 public:
-    HybridPatternFinder(std::span<const std::byte> bytes, BytePattern pattern) noexcept
+    constexpr HybridPatternFinder(std::span<const std::byte> bytes, BytePattern pattern) noexcept
         : bytes{ bytes }, pattern{ pattern }
     {
     }
 
-    [[nodiscard]] [[NOINLINE]] const std::byte* findNextOccurrence() noexcept
+    [[nodiscard]] const std::byte* findNextOccurrence() const noexcept
     {
         PatternFinderSIMD simdFinder{bytes, pattern};
-        if (const auto foundSIMD = simdFinder()) {
+        if (const auto foundSIMD = simdFinder(); foundSIMD != nullptr) {
             updateRemainingBytes(foundSIMD);
             return foundSIMD;
         }
-        
-        if (const auto foundScalar{PatternFinderScalar{simdFinder.getNotCheckedBytes(), pattern}()}) {
+
+        if (const auto foundScalar{PatternFinderScalar{simdFinder.getNotCheckedBytes(), pattern}.find()}; foundScalar != nullptr) {
             updateRemainingBytes(foundScalar);
             return foundScalar;
         }
@@ -39,6 +39,28 @@ private:
         bytes = {foundPosition + 1, bytes.data() + bytes.size()};
     }
 
+    std::span<const std::byte> bytes;
+    BytePattern pattern;
+};
+
+class PatternFinderScalar final {
+public:
+    constexpr PatternFinderScalar(std::span<const std::byte> bytes, BytePattern pattern) noexcept
+        : bytes{ bytes }, pattern{ pattern }
+    {
+    }
+
+    [[nodiscard]] const std::byte* find() const noexcept
+    {
+        // Implementation goes here
+    }
+
+    [[nodiscard]] std::span<const std::byte> getNotCheckedBytes() const noexcept
+    {
+        // Implementation goes here
+    }
+
+private:
     std::span<const std::byte> bytes;
     BytePattern pattern;
 };
