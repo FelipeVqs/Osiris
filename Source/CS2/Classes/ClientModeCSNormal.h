@@ -1,11 +1,9 @@
 #pragma once
 
-namespace cs2
-{
+namespace cs2 {
 
 struct ClientModeCSNormal {
-    using zoomedSniperEffectWeight = float;
-    using zoomedMovingSniperEffectWeight = float;
+    using zoomed_sniper_effect_weight = float;
 };
 
-}
+}  // namespace cs2
