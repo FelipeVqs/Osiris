@@ -2,14 +2,27 @@
 
 #include <Helpers/PatternNotFoundLogger.h>
 #include <MemorySearch/PatternFinder.h>
+#include <SoundChannels.h> // assuming this is where SoundChannels is defined
 
 namespace cs2
 {
-    struct SoundChannels;
+    class SoundSystemPatterns
+    {
+    public:
+        SoundSystemPatterns(const PatternFinder<PatternNotFoundLogger>& patternFinder)
+            : soundSystemPatternFinder(patternFinder) {}
+
+        [[nodiscard]] cs2::SoundChannels** soundChannels() const noexcept
+        {
+            // implementation here
+        }
+
+        const PatternFinder<PatternNotFoundLogger>& getPatternFinder() const noexcept
+        {
+            return soundSystemPatternFinder;
+        }
+
+    private:
+        const PatternFinder<PatternNotFoundLogger>& soundSystemPatternFinder;
+    };
 }
-
-struct SoundSystemPatterns {
-    [[nodiscard]] cs2::SoundChannels** soundChannels() const noexcept;
-
-    const PatternFinder<PatternNotFoundLogger>& soundSystemPatternFinder;
-};
