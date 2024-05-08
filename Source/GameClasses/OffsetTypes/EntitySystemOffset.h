@@ -1,14 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <CS2/CGameEntitySystem.h> // Include the full entity system header
 
-#include <CS2/Classes/EntitySystem/CEntityIndex.h>
-#include <CS2/Classes/EntitySystem/CConcreteEntityList.h>
-#include <CS2/Classes/EntitySystem/CGameEntitySystem.h>
-#include <Utils/FieldOffset.h>
+// Alias the entity system class to a shorter name for brevity
+using EntitySystem = cs2::CGameEntitySystem;
 
+// Offset of the highest entity index in the entity system
+using HighestEntityIndexOffset = std::uint32_t;
+
+// Offset of the concrete entity list in the entity system
+using EntityListOffset = std::int8_t;
+
+// Helper template for getting the offset of a field in the entity system
 template <typename FieldType, typename OffsetType>
-using EntitySystemOffset = FieldOffset<cs2::CGameEntitySystem, FieldType, OffsetType>;
-
-using HighestEntityIndexOffset = EntitySystemOffset<cs2::CEntityIndex, std::int32_t>;
-using EntityListOffset = EntitySystemOffset<cs2::CConcreteEntityList, std::int8_t>;
+using EntitySystemOffset = OffsetType;
