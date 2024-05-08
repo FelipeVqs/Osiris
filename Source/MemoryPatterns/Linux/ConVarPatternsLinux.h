@@ -2,13 +2,36 @@
 
 #include <MemoryPatterns/ConVarPatterns.h>
 #include <MemorySearch/BytePatternLiteral.h>
+#include <optional>
+#include <array>
 
-inline OffsetToConVarValueType ConVarPatterns::offsetToConVarValueType() const noexcept
+constexpr OffsetToConVarValueType ConVarPatterns::offsetToConVarValueType() const noexcept
 {
-    return tier0PatternFinder("66 41 89 46 ? 66"_pat).add(4).readOffset<OffsetToConVarValueType>();
+    // The pattern for finding the offset to the ConVarValueType.
+    constexpr std::array<std::byte, 6> pattern1 = { 0x66, 0x41, 0x89, 0x46, 0x00, 0x66 };
+
+    // Try to find the pattern in memory.
+    auto match1 = tier0PatternFinder(pattern1);
+    if (!match1) {
+        return std::nullopt;
+    }
+
+    // Calculate the offset relative to the start of the pattern.
+    return OffsetToConVarValueType(match1.value().getAddress() + match1.value().getPatternLength() + 4);
 }
 
-inline OffsetToConVarValue ConVarPatterns::offsetToConVarValue() const noexcept
+constexpr OffsetToConVarValue ConVarPatterns::offsetToConVarValue() const noexcept
 {
-    return tier0PatternFinder("31 F6 48 8D 78 ? 48"_pat).add(5).readOffset<OffsetToConVarValue>();
+    // The pattern for finding the offset to the ConVarValue.
+    constexpr std::array<std::byte, 7> pattern2 = { 0x31, 0xF6, 0x48, 0x8D, 0x78, 0x00, 0x48 };
+
+    // Try to find the pattern in memory.
+    auto match2 = tier0PatternFinder(pattern2);
+    if (!match2) {
+        return std::nullopt;
+    }
+
+    // Calculate the offset relative to the start of the pattern.
+    return OffsetToConVarValue(match2.value().getAddress() + match2.value().getPatternLength() + 5);
 }
+
