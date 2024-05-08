@@ -1,32 +1,36 @@
+#ifndef TEST_PATTERN_SEARCH_RESULT_H
+#define TEST_PATTERN_SEARCH_RESULT_H
+
 #include <array>
-#include <cstddef>
 #include <cstring>
-#include <tuple>
-
 #include <gtest/gtest.h>
+#include <memorysearch/patternsearchresult.h>
 
-#include <MemorySearch/PatternSearchResult.h>
+#endif //TEST_PATTERN_SEARCH_RESULT_H
 
-namespace
-{
-
-TEST(PatternSearchResultDefaultConstructedTest, HasNullPointer) {
-    EXPECT_EQ(PatternSearchResult{}.as<void*>(), nullptr);
-}
-
-TEST(PatternSearchResultDefaultConstructedTest, AddMethodDoesNothing) {
-    EXPECT_EQ(PatternSearchResult{}.add(5).as<void*>(), nullptr);
-}
-
-TEST(PatternSearchResultDefaultConstructedTest, AbsMethodReturnsNullPointer) {
-    EXPECT_EQ(PatternSearchResult{}.add(7).abs().as<void*>(), nullptr);
-}
+namespace {
 
 class PatternSearchResultTest : public testing::Test {
 protected:
-    std::array<std::byte, 50> runtimeMemory;
     std::array<std::byte, 60> foundPatternMemory;
 };
+
+class PatternSearchResultDefaultConstructedTest : public PatternSearchResultTest {
+protected:
+    PatternSearchResult sut;
+};
+
+TEST_F(PatternSearchResultDefaultConstructedTest, HasNullPointer) {
+    EXPECT_EQ(sut.as<void*>(), nullptr);
+}
+
+TEST_F(PatternSearchResultDefaultConstructedTest, AddMethodDoesNothing) {
+    EXPECT_EQ(sut.add(5).as<void*>(), nullptr);
+}
+
+TEST_F(PatternSearchResultDefaultConstructedTest, AbsMethodReturnsNullPointer) {
+    EXPECT_EQ(sut.add(7).abs().as<void*>(), nullptr);
+}
 
 class PatternSearchResultToAbsoluteTest : public PatternSearchResultTest, public testing::WithParamInterface<std::tuple<std::size_t, std::int32_t>> {
 protected:
@@ -50,15 +54,22 @@ protected:
 
     [[nodiscard]] PatternSearchResult patternSearchResult() const noexcept
     {
-        return PatternSearchResult{runtimeMemory.data() + kRuntimeMemoryOffset, getFoundPatternOffset(), foundPatternMemory};
+        return PatternSearchResult{nullptr, getFoundPatternOffset(), foundPatternMemory};
     }
 };
 
-TEST_P(PatternSearchResultToAbsoluteTest, ToAbsoluteReturnsCorrectAddress) {
-    EXPECT_EQ(patternSearchResult().abs().as<void*>(), &runtimeMemory.at(kRuntimeMemoryOffset + getFoundPatternOffset() + sizeof(std::int32_t) + getRelativeOffset()));
+TEST_F(PatternSearchResultToAbsoluteTest, ToAbsoluteReturnsCorrectAddress) {
+    const auto absoluteAddress{patternSearchResult().getAbsoluteAddress()};
+    const auto expectedAddress{&runtimeMemory.at(kRuntimeMemoryOffset + getFoundPatternOffset() + sizeof(std::int32_t) + getRelativeOffset())};
+    EXPECT_EQ(absoluteAddress, expectedAddress);
 }
 
 INSTANTIATE_TEST_SUITE_P(, PatternSearchResultToAbsoluteTest,
     testing::Combine(testing::Values(0, 1, 5), testing::Values(-5, 0, 7)));
 
+} // namespace
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
