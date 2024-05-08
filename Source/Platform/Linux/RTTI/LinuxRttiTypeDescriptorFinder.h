@@ -8,9 +8,9 @@
 
 #include "LinuxRttiTypeDescriptor.h"
 
-class LinuxRttiTypeDescriptorFinder {
+class LinuxRttiTypeDescriptorFinder final {
 public:
-    LinuxRttiTypeDescriptorFinder(MemorySection rodataSection, MemorySection dataRelRoSection) noexcept
+    LinuxRttiTypeDescriptorFinder(const MemorySection& rodataSection, const MemorySection& dataRelRoSection) noexcept
         : rodataSection{rodataSection}
         , dataRelRoSection{dataRelRoSection}
     {
@@ -18,7 +18,7 @@ public:
 
     [[nodiscard]] const LinuxRttiTypeDescriptor* findTypeDescriptor(std::string_view mangledTypeName) const noexcept
     {
-        if (const auto typeDescriptorName{findTypeDescriptorName(mangledTypeName)}; isPartOfTypeDescriptor(typeDescriptorName))
+        if (const auto typeDescriptorName = findTypeDescriptorName(mangledTypeName); isPartOfTypeDescriptor(typeDescriptorName))
             return toTypeDescriptorPointer(typeDescriptorName);
         return nullptr;
     }
@@ -30,7 +30,7 @@ private:
         auto typeNameAddress = typeNameFinder.findNextOccurrence();
         while (typeNameAddress) {
             const auto typeNameReference = HybridPatternFinder{dataRelRoSection.raw(), BytePattern::ofObject(typeNameAddress)}.findNextOccurrence();
-            if (typeNameReference && reinterpret_cast<std::uintptr_t>(typeNameReference) % alignof(void*) == 0)
+            if (typeNameReference && (reinterpret_cast<std::uintptr_t>(typeNameReference) % alignof(void*) == 0))
                 return typeNameReference;
             typeNameAddress = typeNameFinder.findNextOccurrence();
         }
@@ -39,7 +39,7 @@ private:
 
     [[nodiscard]] bool isPartOfTypeDescriptor(const std::byte* typeDescriptorName) const noexcept
     {
-        return typeDescriptorName && dataRelRoSection.offsetOf(reinterpret_cast<std::uintptr_t>(typeDescriptorName)) >= LinuxRttiTypeDescriptor::kOffsetOfNamePointer;
+        return typeDescriptorName && (dataRelRoSection.offsetOf(reinterpret_cast<std::uintptr_t>(typeDescriptorName)) >= LinuxRttiTypeDescriptor::kOffsetOfNamePointer);
     }
 
     [[nodiscard]] static const LinuxRttiTypeDescriptor* toTypeDescriptorPointer(const std::byte* typeDescriptorName) noexcept
@@ -47,6 +47,6 @@ private:
         return reinterpret_cast<const LinuxRttiTypeDescriptor*>(typeDescriptorName - LinuxRttiTypeDescriptor::kOffsetOfNamePointer);
     }
 
-    MemorySection rodataSection;
-    MemorySection dataRelRoSection;
+    const MemorySection& rodataSection;
+    const MemorySection& dataRelRoSection;
 };
