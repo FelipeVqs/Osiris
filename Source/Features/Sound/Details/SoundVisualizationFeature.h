@@ -1,5 +1,10 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <vector>
+
 #include <FeatureHelpers/HudInWorldPanelIndex.h>
 #include <FeatureHelpers/HudInWorldPanels.h>
 #include <FeatureHelpers/PanoramaTransformations.h>
@@ -9,11 +14,14 @@
 #include "SoundVisualization.h"
 #include "SoundVisualizationPanelFactory.h"
 
+using namespace FeatureHelpers;
+using namespace Hooks;
+
 struct SoundVisualizationFeatureState {
     bool enabled{false};
 
     cs2::PanelHandle containerPanelHandle;
-    DynamicArray<HudInWorldPanelIndex> panelIndices;
+    std::vector<HudInWorldPanelIndex> panelIndices;
 };
 
 template <typename PanelsType, typename SoundType>
@@ -23,13 +31,13 @@ public:
         SoundVisualizationFeatureState& state,
         HookDependencies& hookDependencies,
         ViewRenderHook& viewRenderHook,
-        SoundWatcher soundWatcher,
+        SoundWatcher<SoundType>& soundWatcher,
         HudInWorldPanelContainer& hudInWorldPanelContainer,
-        WorldToClipSpaceConverter worldtoClipSpaceConverter,
-        ViewToProjectionMatrix viewToProjectionMatrix,
-        PanelConfigurator panelConfigurator,
-        HudProvider hudProvider) noexcept
-        : SoundVisualizationFeature::TogglableFeature{state.enabled}
+        WorldToClipSpaceConverter& worldtoClipSpaceConverter,
+        ViewToProjectionMatrix& viewToProjectionMatrix,
+        PanelConfigurator& panelConfigurator,
+        HudProvider& hudProvider) noexcept
+        : TogglableFeature<SoundVisualizationFeature<PanelsType, SoundType>>{state.enabled}
         , state{state}
         , hookDependencies{hookDependencies}
         , viewRenderHook{viewRenderHook}
@@ -39,12 +47,10 @@ public:
         , viewToProjectionMatrix{viewToProjectionMatrix}
         , panelConfigurator{panelConfigurator}
         , hudProvider{hudProvider}
-    {
-    }
+    {}
 
-    void run() noexcept
-    {
-        if (!this->isEnabled())
+    void run() noexcept override {
+        if (!isEnabled())
             return;
 
         constexpr auto kCrucialDependencies{HookDependenciesMask{}.set<PanoramaTransformFactory>().set<CurTime>()};
@@ -70,22 +76,22 @@ public:
         }
 
         std::size_t currentIndex = 0;
-        std::as_const(soundWatcher).getSoundsOfType<SoundType>().forEach([this, &currentIndex, containerPanel, panels](const PlayedSound& sound) {
+        for (const auto& sound : soundWatcher.getSoundsOfType<SoundType>()) {
             const auto soundInClipSpace = worldtoClipSpaceConverter.toClipSpace(sound.origin);
             if (!soundInClipSpace.onScreen())
-                return;
+                continue;
 
             const auto opacity = SoundVisualization<SoundType>::getOpacity(sound.getTimeAlive(hookDependencies.getDependency<CurTime>()));
             if (opacity <= 0.0f)
-                return;
+                continue;
 
             const auto panel = getPanel(containerPanel, panels, currentIndex);
             if (!panel)
-                return;
+                continue;
 
             const auto style = panel.getStyle();
             if (!style)
-                return;
+                continue;
 
             const auto styleSetter{panelConfigurator.panelStyle(*style)};
             styleSetter.setOpacity(opacity);
@@ -100,7 +106,7 @@ public:
             }.applyTo(styleSetter);
 
             ++currentIndex;
-        });
+        }
 
         hideRemainingPanels(panels, currentIndex);
     }
@@ -108,14 +114,12 @@ public:
 private:
     friend TogglableFeature<SoundVisualizationFeature<PanelsType, SoundType>>;
 
-    void onEnable() noexcept
-    {
+    void onEnable() noexcept override {
         viewRenderHook.incrementReferenceCount();
         soundWatcher.startWatching<SoundType>();
     }
 
-    void onDisable() noexcept
-    {
+    void onDisable() noexcept override {
         viewRenderHook.decrementReferenceCount();
         soundWatcher.stopWatching<SoundType>();
         if (const auto containerPanel{hudInWorldPanelContainer.get(hudProvider, panelConfigurator)}) {
@@ -124,23 +128,21 @@ private:
         }
     }
 
-    [[nodiscard]] PanoramaUiPanel getPanel(PanoramaUiPanel containerPanel, HudInWorldPanels inWorldPanels, std::size_t index) const noexcept
-    {
-        if (index < state.panelIndices.getSize()) {
+    [[nodiscard]] auto getPanel(PanoramaUiPanel containerPanel, HudInWorldPanels inWorldPanels, std::size_t index) const noexcept -> PanoramaUiPanel {
+        if (index < state.panelIndices.size()) {
             if (const auto panel{inWorldPanels.getPanel(state.panelIndices[index])})
                 return panel;
-            state.panelIndices.fastRemoveAt(index);
+            state.panelIndices.erase(state.panelIndices.begin() + index);
         }
         if (const auto panel{SoundVisualizationPanelFactory{*static_cast<cs2::CUIPanel*>(containerPanel), panelConfigurator}.createSoundVisualizationPanel(PanelsType::soundVisualizationPanelProperties())}) {
-            state.panelIndices.pushBack(inWorldPanels.getIndexOfLastPanel());
+            state.panelIndices.push_back(inWorldPanels.getIndexOfLastPanel());
             return panel;
         }
         return PanoramaUiPanel{nullptr};
     }
 
-    void hideRemainingPanels(HudInWorldPanels inWorldPanels, std::size_t firstIndexToHide) const noexcept
-    {
-        for (std::size_t i = firstIndexToHide; i < state.panelIndices.getSize(); ++i) {
+    void hideRemainingPanels(HudInWorldPanels inWorldPanels, std::size_t firstIndexToHide) const noexcept {
+        for (std::size_t i = firstIndexToHide; i < state.panelIndices.size(); ++i) {
             if (const auto panel{inWorldPanels.getPanel(state.panelIndices[i])}) {
                 if (const auto style{panel.getStyle()})
                     panelConfigurator.panelStyle(*style).setOpacity(0.0f);
@@ -151,10 +153,10 @@ private:
     SoundVisualizationFeatureState& state;
     HookDependencies& hookDependencies;
     ViewRenderHook& viewRenderHook;
-    SoundWatcher soundWatcher;
+    SoundWatcher<SoundType>& soundWatcher;
     HudInWorldPanelContainer& hudInWorldPanelContainer;
-    WorldToClipSpaceConverter worldtoClipSpaceConverter;
-    ViewToProjectionMatrix viewToProjectionMatrix;
-    PanelConfigurator panelConfigurator;
-    HudProvider hudProvider;
+    WorldToClipSpaceConverter& worldtoClipSpaceConverter;
+    ViewToProjectionMatrix& viewToProjectionMatrix;
+    PanelConfigurator& panelConfigurator;
+    HudProvider& hudProvider;
 };
