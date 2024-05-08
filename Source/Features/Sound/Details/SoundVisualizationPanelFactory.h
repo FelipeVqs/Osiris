@@ -1,30 +1,33 @@
 #pragma once
 
 #include <cassert>
+#include <memory>
+#include <string>
 
 #include <CS2/Classes/Panorama.h>
 #include <CS2/Constants/ColorConstants.h>
 #include <GameClasses/Panel.h>
 #include <GameClasses/PanoramaUiPanel.h>
-
+#include <GameEngine/PanelConfigurator.h>
 #include "SoundVisualizationPanelProperties.h"
 
 class SoundVisualizationPanelFactory {
 public:
-    SoundVisualizationPanelFactory(cs2::CUIPanel& parentPanel, PanelConfigurator panelConfigurator) noexcept
-        : parentPanel{parentPanel}
-        , panelConfigurator{panelConfigurator}
+    SoundVisualizationPanelFactory(cs2::CUIPanel& parentPanel, PanelConfigurator panelConfigurator = PanelConfigurator{})
+        : parentPanel{parentPanel}, panelConfigurator{std::move(panelConfigurator)}
     {
     }
 
-    [[nodiscard]] PanoramaUiPanel createSoundVisualizationPanel(const SoundVisualizationPanelProperties& properties) const noexcept
+    std::unique_ptr<PanoramaUiPanel> createSoundVisualizationPanel(const SoundVisualizationPanelProperties& properties) const
     {
-        const auto containerPanel{Panel::create("", &parentPanel)};
-        if (!containerPanel)
-            return PanoramaUiPanel{nullptr};
+        auto containerPanel = std::unique_ptr<cs2::CUIPanel>{Panel::create("", &parentPanel)};
+        if (!containerPanel) {
+            // Log an error message
+            return nullptr;
+        }
 
         if (const auto style{PanoramaUiPanel{containerPanel->uiPanel}.getStyle()}) {
-            const auto styler{panelConfigurator.panelStyle(*style)};
+            const auto styler = panelConfigurator.panelStyle(*style);
             styler.setWidth(cs2::CUILength::pixels(kWidth));
             styler.setHeight(cs2::CUILength::pixels(kHeight));
             if (properties.position == SoundVisualizationPosition::AboveOrigin) {
@@ -37,24 +40,25 @@ public:
         }
 
         applyStyleToImagePanel(PanoramaImagePanel::create("", containerPanel->uiPanel), properties);
-        return PanoramaUiPanel{containerPanel->uiPanel};
+        return std::make_unique<PanoramaUiPanel>(containerPanel->uiPanel);
     }
 
 private:
-    void applyStyleToImagePanel(cs2::CImagePanel* imagePanel, const SoundVisualizationPanelProperties& properties) const noexcept
+    void applyStyleToImagePanel(cs2::CImagePanel* imagePanel, const SoundVisualizationPanelProperties& properties) const
     {
-        if (!imagePanel)
+        if (!imagePanel) {
             return;
+        }
 
         PanoramaImagePanel{imagePanel}.setImageSvg(properties.svgImagePath, properties.svgTextureHeight);
         if (const auto style{PanoramaUiPanel{imagePanel->uiPanel}.getStyle()}) {
-            const auto styler{panelConfigurator.panelStyle(*style)};
+            const auto styler = panelConfigurator.panelStyle(*style);
             styler.setAlign(cs2::k_EHorizontalAlignmentCenter, imageVerticalAlignment(properties.position));
             styler.setImageShadow(imageShadowParams());
         }
     }
 
-    [[nodiscard]] static PanelShadowParams imageShadowParams() noexcept
+    static PanelShadowParams imageShadowParams()
     {
         return PanelShadowParams{
             .horizontalOffset{cs2::CUILength::pixels(0)},
@@ -65,10 +69,11 @@ private:
         };
     }
 
-    [[nodiscard]] static cs2::EVerticalAlignment imageVerticalAlignment(SoundVisualizationPosition position) noexcept
+    static cs2::EVerticalAlignment imageVerticalAlignment(SoundVisualizationPosition position)
     {
-        if (position == SoundVisualizationPosition::AboveOrigin)
+        if (position == SoundVisualizationPosition::AboveOrigin) {
             return cs2::k_EVerticalAlignmentBottom;
+        }
         return cs2::k_EVerticalAlignmentCenter;
     }
 
