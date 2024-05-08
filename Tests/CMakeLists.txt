@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
+
+project(MyProject)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
@@ -11,13 +15,21 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-add_executable(Tests "")
+add_executable(Tests)
+target_sources(Tests PRIVATE "")
+
 add_subdirectory(HelpersTests)
 add_subdirectory(MemoryAllocation)
 add_subdirectory(MemorySearchTests)
 add_subdirectory(Platform)
 add_subdirectory(UtilsTests)
-target_link_libraries(Tests gtest_main gmock Threads::Threads)
+
+target_link_libraries(Tests
+  gtest_main
+  gmock
+  Threads::Threads
+)
+
 target_include_directories(Tests PRIVATE . "${CMAKE_SOURCE_DIR}/Source")
 
 include(GoogleTest)
