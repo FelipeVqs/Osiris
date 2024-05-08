@@ -1,80 +1,55 @@
 #pragma once
 
 #include <algorithm>
+#include <ranges>
+#include <vector>
 
 #include "PlayedSound.h"
 #include <Utils/DynamicArray.h>
 
 class WatchedSounds {
 public:
-    void addSound(int guid, const PlayedSound& sound) noexcept
-    {
+    void addSound(int guid, const PlayedSound& sound) {
         if (!guids.pushBack(guid))
             return;
 
-        if (const auto soundAtSameOrigin = findSoundAtOrigin(sound.origin)) {
-            soundAtSameOrigin->spawnTime = sound.spawnTime;
-        } else if (sounds.pushBack(sound)) {
+        auto it = std::ranges::find_if(sounds, [&](const auto& s) { return s.origin == sound.origin; });
+        if (it != sounds.end()) {
+            it->spawnTime = sound.spawnTime;
+        } else if (sounds.emplaceBack(sound)) {
             std::swap(guids.back(), guids[sounds.getSize() - 1]);
         }
     }
 
-    [[nodiscard]] bool hasSound(int soundGuid) const noexcept
-    {
-        // can not use std::ranges::find() because it tries to link with __std_find_trivial_4
-        for (const auto guid : guids) {
-            if (guid == soundGuid)
-                return true;
-        }
-        return false;
+    bool hasSound(int soundGuid) const {
+        return std::ranges::any_of(guids, [&](const auto guid) { return guid == soundGuid; });
     }
 
     template <typename Predicate>
-    void removeExpiredSounds(Predicate&& predicate) noexcept
-    {
-        for (std::size_t i = 0; i < guids.getSize();) {
-            if (!tryRemoveGuidAndSound(std::forward<Predicate>(predicate), i))
-                ++i;
-        }
+    void removeExpiredSounds(Predicate&& predicate) {
+        guids.remove_if([&](const auto guid) {
+            if (const auto soundIt = std::ranges::find_if(sounds, [&](const auto& s) { return s.guid == guid; });
+                soundIt != sounds.end() && predicate(*soundIt)) {
+                removeSoundAndGuid(std::ranges::distance(sounds.begin(), soundIt));
+                return true;
+            }
+            return false;
+        });
     }
 
     template <typename F>
-    void forEach(F&& f) const noexcept
-    {
+    void forEach(F&& f) const {
         std::ranges::for_each(sounds, std::forward<F>(f));
     }
 
+    auto begin() { return sounds.begin(); }
+    auto end() { return sounds.end(); }
+
 private:
-    template <typename Predicate>
-    [[nodiscard]] bool tryRemoveGuidAndSound(Predicate&& predicate, std::size_t index) noexcept
-    {
-        const auto hasSoundAssociatedWithGuid = index < sounds.getSize();
-        const auto canRemoveSound = !hasSoundAssociatedWithGuid || predicate(std::as_const(sounds[index]));
-
-        if (canRemoveSound && predicate(std::as_const(guids[index]))) {
-            hasSoundAssociatedWithGuid ? removeSoundAndGuid(index) : removeGuid(index);
-            return true;
-        }
-        return false;
-    }
-
-    [[nodiscard]] PlayedSound* findSoundAtOrigin(const cs2::Vector& origin) noexcept
-    {
-        if (const auto found = std::ranges::find(sounds, origin, &PlayedSound::origin); found != sounds.end())
-            return found;
-        return nullptr;
-    }
-
-    void removeSoundAndGuid(std::size_t index) noexcept
-    {
+    void removeSoundAndGuid(std::size_t index) {
         sounds.fastRemoveAt(index);
         guids[index] = guids[sounds.getSize()];
-        removeGuid(sounds.getSize());
-    }
-
-    void removeGuid(std::size_t index) noexcept
-    {
-        guids.fastRemoveAt(index);
+        guids.fastRemoveAt(sounds.getSize());
     }
 
     DynamicArray<int> guids;
