@@ -12,7 +12,9 @@
 enum class BytePatternConverterError {
     NoError,
     WildcardUsedAsByte,
-    UnexpectedChar
+    UnexpectedChar,
+    InsufficientCharsForByte,
+    InvalidByteFormat
 };
 
 template <std::size_t N>
@@ -25,7 +27,7 @@ struct BytePatternConverter {
 
     using Error = BytePatternConverterError;
 
-    [[nodiscard]] constexpr std::pair<std::string_view, Error> operator()()
+    [[nodiscard]] constexpr std::pair<std::string_view, Error> convert()
     {
         while (canConvert())
             convertNextSequence();
@@ -33,7 +35,7 @@ struct BytePatternConverter {
     }
 
 private:
-    [[nodiscard]] constexpr bool canConvert() noexcept
+    [[nodiscard]] constexpr bool canConvert() const noexcept
     {
         return hasCharsToConvert() && noErrorOccured();
     }
@@ -107,23 +109,31 @@ private:
     [[nodiscard]] constexpr std::optional<char> readAndConvertByte() noexcept
     {
         const auto read = readNextByte();
-        return hexCharsToByte({ read[0], read[1] });
+        return hexCharsToByte(read);
     }
 
     constexpr void convertByte() noexcept
     {
-        canConvertByte() ? performByteConversion() : setUnexpectedCharError();
+        canConvertByte() ? performByteConversion() : setInsufficientCharsForByteError();
     }
 
     constexpr void performByteConversion()
     {
-        const auto convertedByte = readAndConvertByte(); 
-        convertedByte.has_value() ? handleConvertedByte(*convertedByte) : setUnexpectedCharError();
+        const auto convertedByte = readAndConvertByte();
+        if (convertedByte.has_value()) {
+            handleConvertedByte(*convertedByte);
+        } else {
+            setInvalidByteFormatError();
+        }
     }
 
     constexpr void handleConvertedByte(char convertedByte)
     {
-        !isWildcardChar(convertedByte) ? putChar(convertedByte) : setWildcardUsedAsByteError();
+        if (!isWildcardChar(convertedByte)) {
+            putChar(convertedByte);
+        } else {
+            setWildcardUsedAsByteError();
+        }
     }
 
     constexpr void convertWildcard()
@@ -166,10 +176,10 @@ private:
     {
         ++readPosition;
     }
-    
-    constexpr void putChar(char convertedChar) noexcept
+
+    constexpr void putChar(char c) noexcept
     {
-        buffer[writePosition] = convertedChar;
+        buffer[writePosition] = c;
         ++writePosition;
     }
 
@@ -178,4 +188,8 @@ private:
     std::size_t writePosition = 0;
     bool spaceExpected = false;
     Error error = Error::NoError;
+
+    static constexpr std::size_t hexCharsInByte = 2;
 };
+
+static_assert(N > 0, "N must be a positive value");
