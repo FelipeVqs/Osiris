@@ -4,9 +4,8 @@
 
 #include <MemorySearch/HybridPatternFinder.h>
 #include <Utils/MemorySection.h>
-
-#include "RTTI/RttiCompleteObjectLocatorFinder.h"
-#include "RTTI/RttiTypeDescriptorFinder.h"
+#include <RTTI/RttiCompleteObjectLocatorFinder.h>
+#include <RTTI/RttiTypeDescriptorFinder.h>
 #include "WindowsVmtFinderParams.h"
 
 class WindowsVmtFinder {
@@ -18,12 +17,12 @@ public:
     {
     }
 
-    [[nodiscard]] const void* findVmt(std::string_view mangledTypeName) const noexcept
+    [[nodiscard]] const std::byte* findVmt(std::string_view mangledTypeName) const noexcept
     {
         static constexpr auto kOffsetToVmt{8};
 
         const auto completeObjectLocatorPrecedingVmt{findCompleteObjectLocatorPrecedingVmt(mangledTypeName)};
-        if (vmtSection.contains(reinterpret_cast<std::uintptr_t>(completeObjectLocatorPrecedingVmt), kOffsetToVmt))
+        if (vmtSection.contains(toRva(completeObjectLocatorPrecedingVmt), kOffsetToVmt))
             return completeObjectLocatorPrecedingVmt + kOffsetToVmt;
         return nullptr;
     }
@@ -42,7 +41,7 @@ private:
     [[nodiscard]] const RttiCompleteObjectLocator* findCompleteObjectLocator(const RttiTypeDescriptor* typeDescriptor) const noexcept
     {
         if (typeDescriptor)
-            return RttiCompleteObjectLocatorFinder{vmtSection, ToRvaConverter{reinterpret_cast<std::uintptr_t>(dllBase)}}.findCompleteObjectLocator(typeDescriptor);
+            return RttiCompleteObjectLocatorFinder{vmtSection, toRvaConverter{reinterpret_cast<std::uintptr_t>(dllBase)}}.findCompleteObjectLocator(typeDescriptor);
         return nullptr;
     }
 
@@ -56,4 +55,19 @@ private:
     MemorySection dataSection;
     MemorySection vmtSection;
     const void* dllBase;
+
+    // Helper function to convert a pointer to an RVA (Relative Virtual Address)
+    std::uintptr_t toRva(const std::byte* ptr) const noexcept
+    {
+        return reinterpret_cast<std::uintptr_t>(ptr) - reinterpret_cast<std::uintptr_t>(dllBase);
+    }
+
+    // Helper struct to simplify the toRvaConverter parameter
+    struct ToRvaConverter {
+        std::uintptr_t operator()(std::uintptr_t addr) const noexcept
+        {
+            return addr - reinterpret_cast<std::uintptr_t>(dllBase);
+        }
+    };
+    ToRvaConverter toRvaConverter;
 };
