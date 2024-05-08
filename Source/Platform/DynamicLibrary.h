@@ -1,17 +1,11 @@
 #pragma once
 
-#include "Macros/IsPlatform.h"
-
 #if IS_WIN64()
-
 #include "Windows/WindowsDynamicLibrary.h"
-
-using DynamicLibrary = WindowsDynamicLibrary;
-
 #elif IS_LINUX()
-
 #include "Linux/LinuxDynamicLibrary.h"
+#endif
 
-using DynamicLibrary = LinuxDynamicLibrary;
-
+#if IS_WIN64() || IS_LINUX()
+using DynamicLibrary = /* the type defined in the included header */;
 #endif
