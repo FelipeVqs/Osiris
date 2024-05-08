@@ -1,9 +1,16 @@
+/// @file team.h
+/// @brief Defines the team constants for the Counter-Strike game.
+
 #pragma once
 
-namespace cs2
+namespace counterstrike
 {
 
-constexpr auto TEAM_TERRORIST = 2;
-constexpr auto TEAM_CT = 3;
+/// The team constants for the Counter-Strike game.
+enum class Team
+{
+    Terrorist = 2, ///< The terrorist team.
+    CT = 3 ///< The counter-terrorist team.
+};
 
-}
+} // namespace counterstrike
