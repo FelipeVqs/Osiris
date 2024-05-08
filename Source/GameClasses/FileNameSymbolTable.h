@@ -18,10 +18,16 @@ struct FileNameSymbolTable {
 
     void getString(cs2::FileNameHandle_t handle, std::span<char> buffer) const noexcept
     {
-        if (FileNameSymbolTableImpl::instance().string)
+        if (thisptr == nullptr) {
+            return;
+        }
+
+        if (FileNameSymbolTableImpl::instance().string) {
             FileNameSymbolTableImpl::instance().string(thisptr, &handle, buffer.data(), static_cast<int>(buffer.size()));
+        }
     }
 
 private:
     cs2::CUtlFilenameSymbolTable* thisptr;
 };
+
