@@ -1,12 +1,15 @@
 #pragma once
 
-namespace cs2
-{
+#include <string>
+#include <unordered_map>
 
-using FileNameHandle_t = void*;
+namespace cs2 {
+
+using FileNameHandle_t = std::string*;
 
 struct CUtlFilenameSymbolTable {
-    using String = bool(CUtlFilenameSymbolTable* thisptr, const FileNameHandle_t* handle, char* buf, int buflen);
+    using String = std::string& (CUtlFilenameSymbolTable* thisptr, const FileNameHandle_t* handle, char* buf, int buflen);
+    std::unordered_map<FileNameHandle_t, std::string> filenameTable;
 };
 
-}
+} // namespace cs2
