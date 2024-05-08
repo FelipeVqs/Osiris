@@ -1,7 +1,5 @@
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_subdirectory(Linux)
-endif()
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+if (WIN32)
   add_subdirectory(Windows)
+elseif (UNIX)
+  add_subdirectory(Linux)
 endif()
