@@ -8,22 +8,38 @@
 
 class LinuxMessageBox {
 public:
-    void showWarning(const char* title, const char* message) const noexcept
-    {
+    LinuxMessageBox() noexcept
+        : showSimpleMessageBox_(SdlDll{}.showSimpleMessageBox()) {
+        if (!showSimpleMessageBox_) {
+            // Handle error
+        }
+    }
+
+    ~LinuxMessageBox() noexcept {
+        destroy();
+    }
+
+    void showWarning(const char* title, const char* message) const noexcept {
         showMessageBox(title, message, sdl3::SDL_MESSAGEBOX_WARNING);
     }
 
-    void showError(const char* title, const char* message) const noexcept
-    {
+    void showError(const char* title, const char* message) const noexcept {
         showMessageBox(title, message, sdl3::SDL_MESSAGEBOX_ERROR);
     }
 
 private:
-    void showMessageBox(const char* title, const char* message, unsigned int flags) const noexcept
-    {
-        if (showSimpleMessageBox)
-            showSimpleMessageBox(flags, title, message, nullptr);
+    void showMessageBox(const char* title, const char* message, unsigned int flags) const noexcept {
+        if (showSimpleMessageBox_) {
+            showSimpleMessageBox_(flags, title, message, nullptr);
+        }
     }
 
-    sdl3::SDL_ShowSimpleMessageBox* showSimpleMessageBox{SdlDll{}.showSimpleMessageBox()};
+    void destroy() noexcept {
+        if (showSimpleMessageBox_) {
+            SdlDll{}.destroyShowSimpleMessageBox(showSimpleMessageBox_);
+            showSimpleMessageBox_ = nullptr;
+        }
+    }
+
+    sdl3::SDL_ShowSimpleMessageBox* showSimpleMessageBox_;
 };
