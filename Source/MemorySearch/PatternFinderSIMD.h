@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <emmintrin.h>
 #include <span>
 #include <string_view>
 
@@ -17,7 +16,7 @@ public:
     {
     }
 
-    const std::byte* operator()() noexcept
+    const std::byte* operator()() const noexcept
     {
         // http://0x80.pl/articles/simd-strfind.html
 
@@ -33,18 +32,28 @@ public:
         const auto firstCharMask{_mm_set1_epi8(pattern.raw()[indexOfFirstNonWildcardChar])};
         const auto lastCharMask{_mm_set1_epi8(pattern.raw()[indexOfLastNonWildcardChar])};
 
-        const BytePattern patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar{std::string_view{pattern.raw().data() + indexOfFirstNonWildcardChar + 1, indexOfLastNonWildcardChar - indexOfFirstNonWildcardChar}, pattern.getWildcardChar()};
+        const BytePattern patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar{
+            std::string_view{pattern.raw().data() + indexOfFirstNonWildcardChar + 1,
+                              indexOfLastNonWildcardChar - indexOfFirstNonWildcardChar},
+            pattern.getWildcardChar()};
 
-        for (; canDoAnotherIteration(); currentPos += sizeof(__m128i)) {
-            const auto possibleFirstChars{_mm_loadu_si128(reinterpret_cast<const __m128i*>(&bytes[currentPos + indexOfFirstNonWildcardChar]))};
-            const auto possibleLastChars{_mm_loadu_si128(reinterpret_cast<const __m128i*>(&bytes[currentPos + indexOfLastNonWildcardChar]))};
+        for (std::size_t currentPos = 0; canDoAnotherIteration();
+             currentPos += sizeof(__m128i)) {
+            const auto possibleFirstChars{_mm_loadu_si128(
+                reinterpret_cast<const __m128i*>(&bytes[currentPos + indexOfFirstNonWildcardChar]))};
+            const auto possibleLastChars{_mm_loadu_si128(
+                reinterpret_cast<const __m128i*>(&bytes[currentPos + indexOfLastNonWildcardChar]))};
 
             const auto firstCharMatchPositions{_mm_cmpeq_epi8(firstCharMask, possibleFirstChars)};
             const auto lastCharMatchPositions{_mm_cmpeq_epi8(lastCharMask, possibleLastChars)};
 
-            auto mask{static_cast<std::uint16_t>(_mm_movemask_epi8(_mm_and_si128(firstCharMatchPositions, lastCharMatchPositions)))};
+            auto mask{static_cast<std::uint16_t>(_mm_movemask_epi8(
+                _mm_and_si128(firstCharMatchPositions, lastCharMatchPositions)))};
             while (mask != 0) {
-                if (const auto bitPos = bits::countrZero(mask); patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar.matches(bytes.subspan(currentPos + bitPos + indexOfFirstNonWildcardChar + 1, patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar.length()))) {
+                if (const auto bitPos = bits::countrZero(mask);
+                    patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar.matches(
+                        bytes.subspan(currentPos + bitPos + indexOfFirstNonWildcardChar + 1,
+                                      patternWithoutLeadingAndTrailingWildcardsWithoutFirstAndLastChar.length()))) {
                     return &bytes[currentPos + bitPos];
                 }
 
