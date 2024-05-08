@@ -5,27 +5,30 @@
 
 class EntityFromHandleFinder {
 public:
-    explicit EntityFromHandleFinder(const cs2::CConcreteEntityList& entityList) noexcept
-        : entityList{entityList}
+    explicit EntityFromHandleFinder(const cs2::CConcreteEntityList& entity_list) noexcept
+        : entity_list{entity_list}
     {
     }
 
 
-    [[nodiscard]] cs2::CEntityInstance* getEntityFromHandle(cs2::CEntityHandle handle) const noexcept
+    [[nodiscard]] const cs2::CEntityInstance* getEntityFromHandle(cs2::CEntityHandle handle) const noexcept
     {
-        const auto entityIndex = handle.index();
-        if (!entityIndex.isValid())
+        const auto entity_index = handle.index();
+        if (!entity_index.isValid())
             return nullptr;
 
-        const auto chunkIndex = entityIndex.value / cs2::CConcreteEntityList::kNumberOfIdentitiesPerChunk;
-        if (const auto* const chunk = entityList.chunks[chunkIndex]) {
-            const auto indexInChunk = entityIndex.value % cs2::CConcreteEntityList::kNumberOfIdentitiesPerChunk;
-            if (const auto& entityIndentity = (*chunk)[indexInChunk]; entityIndentity.handle == handle)
-                return entityIndentity.entity;
+        constexpr size_t entities_per_chunk = cs2::CConcreteEntityList::kNumberOfIdentitiesPerChunk;
+        const size_t chunk_index = entity_index.value / entities_per_chunk;
+        static_assert(chunk_index < cs2::CConcreteEntityList::kMaxChunks, "Chunk index is out of bounds");
+
+        if (const auto* const chunk = entity_list.chunks[chunk_index]) {
+            const size_t index_in_chunk = entity_index.value % entities_per_chunk;
+            if (const auto& entity_identity = (*chunk)[index_in_chunk]; entity_identity.handle == handle)
+                return entity_identity.entity;
         }
         return nullptr;
     }
 
 private:
-    const cs2::CConcreteEntityList& entityList;
+    const cs2::CConcreteEntityList& entity_list;
 };
