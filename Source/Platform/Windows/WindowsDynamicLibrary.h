@@ -1,67 +1,69 @@
 #pragma once
 
 #include <Windows.h>
+#include <memory>
+#include <optional>
+#include <string>
 
 #include "PebLdr.h"
 #include "PortableExecutable.h"
-#include <Utils/GenericPointer.h>
-#include <Utils/MemorySection.h>
 #include "WindowsPlatformApi.h"
 #include "WindowsVmtFinderParams.h"
 
 class WindowsDynamicLibrary {
 public:
-    explicit WindowsDynamicLibrary(const char* libraryName)
-        : handle{ PebLdr{ WindowsPlatformApi::getPeb()->ldr }.getModuleHandle(libraryName) }
-    {
+    explicit WindowsDynamicLibrary(const std::string& libraryName)
+        : handle{ PebLdr{ WindowsPlatformApi::getPeb()->ldr }.getModuleHandle(libraryName.c_str()) } {
+        assert(handle != nullptr);
     }
 
-    [[nodiscard]] explicit operator bool() const noexcept
-    {
+    explicit operator bool() const {
         return handle != nullptr;
     }
 
-    [[nodiscard]] GenericPointer getFunctionAddress(const char* functionName) const noexcept
-    {
-        if (handle)
-            return portableExecutable().getExport(functionName);
-        return {};
+    std::optional<GenericPointer> getFunctionAddress(const std::string& functionName) const {
+        if (handle) {
+            const auto pe = PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
+            return pe.getExport(functionName);
+        }
+        return std::nullopt;
     }
 
-    [[nodiscard]] MemorySection getCodeSection() const noexcept
-    {
-        if (handle)
-            return portableExecutable().getCodeSection();
-        return {};
+    std::optional<MemorySection> getCodeSection() const {
+        if (handle) {
+            const auto pe = PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
+            return pe.getCodeSection();
+        }
+        return std::nullopt;
     }
 
-    [[nodiscard]] MemorySection getVmtSection() const noexcept
-    {
-        if (handle)
-            return portableExecutable().getVmtSection();
-        return {};
+    std::optional<MemorySection> getVmtSection() const {
+        if (handle) {
+            const auto pe = PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
+            return pe.getVmtSection();
+        }
+        return std::nullopt;
     }
 
-    [[nodiscard]] MemorySection getDataSection() const noexcept
-    {
-        if (handle)
-            return portableExecutable().getDataSection();
-        return {};
+    std::optional<MemorySection> getDataSection() const {
+        if (handle) {
+            const auto pe = PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
+            return pe.getDataSection();
+        }
+        return std::nullopt;
     }
 
-    [[nodiscard]] WindowsVmtFinderParams getVmtFinderParams() const noexcept
-    {
+    WindowsVmtFinderParams getVmtFinderParams() const {
         return {getDataSection(), getVmtSection(), handle};
     }
 
-    [[nodiscard]] HMODULE getHandle() const noexcept
-    {
+    HMODULE getHandle() const {
         return handle;
     }
 
 private:
-    [[nodiscard]] PortableExecutable portableExecutable() const noexcept
-    {
+    std::optional<PortableExecutable> portableExecutable() const {
+        assert(handle != nullptr);
         return PortableExecutable{ reinterpret_cast<const std::byte*>(handle) };
     }
 
