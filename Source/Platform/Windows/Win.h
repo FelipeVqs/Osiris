@@ -1,33 +1,51 @@
-#pragma once
+#ifndef WIN_PEB_H
+#define WIN_PEB_H
 
 #include <Platform/Macros/IsPlatform.h>
 #include <Utils/CharUtils.h>
 #include <Utils/Pad.h>
+#include <cstddef> // for std::size_t
+#include <new> // for noexcept
 
 namespace win
 {
 
-struct ListEntry {
+struct ListEntry
+{
     ListEntry* fLink;
     ListEntry* bLink;
 };
 
-static_assert(IS_WIN64());
+inline ListEntry* getListEntry(LdrDataTableEntry* entry) noexcept
+{
+    return &entry->inLoadOrderLinks;
+}
 
-struct PebLdrData {
+struct PebLdrData
+{
     PAD(0x10);
     ListEntry inLoadOrderModuleList;
 };
 
-struct Peb {
+inline PebLdrData* getPebLdrData(Peb* peb) noexcept
+{
+    return peb->ldr;
+}
+
+struct Peb
+{
     PAD(0x18);
     PebLdrData* ldr;
 };
 
-struct UnicodeString {
+struct UnicodeString
+{
     unsigned short length;
     unsigned short maximumLength;
     wchar_t* buffer;
+
+    UnicodeString(unsigned short length, unsigned short maximumLength, wchar_t* buffer) noexcept
+        : length(length), maximumLength(maximumLength), buffer(buffer) {}
 
     [[nodiscard]] unsigned short lengthInChars() const noexcept
     {
@@ -44,7 +62,8 @@ struct UnicodeString {
     }
 };
 
-struct LdrDataTableEntry {
+struct LdrDataTableEntry
+{
     ListEntry inLoadOrderLinks;
     ListEntry inMemoryOrderLinks;
     ListEntry inInitializationOrderLinks;
@@ -55,4 +74,38 @@ struct LdrDataTableEntry {
     UnicodeString baseDllName;
 };
 
+inline UnicodeString* getUnicodeString(LdrDataTableEntry* entry, int index) noexcept
+{
+    switch (index) {
+    case 0: return &(entry->fullDllName);
+    case 1: return &(entry->baseDllName);
+    default: return nullptr;
+    }
 }
+
+inline bool equalsCaseInsensitive(UnicodeString* str1, UnicodeString* str2) noexcept
+{
+    if (str1->length != str2->length)
+        return false;
+
+    for (std::size_t i = 0; i < str1->lengthInChars(); ++i) {
+        if (utils::toUpper(str1->buffer[i]) != utils::toUpper(str2->buffer[i]))
+            return false;
+    }
+
+    return true;
+}
+
+inline const wchar_t* getModulePath(LdrDataTableEntry* entry) noexcept
+{
+    return entry->fullDllName.buffer;
+}
+
+inline const wchar_t* getModuleBaseName(LdrDataTableEntry* entry) noexcept
+{
+    return entry->baseDllName.buffer;
+}
+
+} // namespace win
+
+#endif // WIN_PEB_H
