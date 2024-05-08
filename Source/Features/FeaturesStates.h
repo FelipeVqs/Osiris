@@ -1,11 +1,16 @@
 #pragma once
 
 #include "Hud/States/HudFeaturesStates.h"
-#include "Sound/SoundFeaturesStates.h"
-#include "Visuals/VisualFeaturesStates.h"
+#include "Sound/States/SoundFeaturesStates.h"
+#include "Visuals/States/VisualFeaturesStates.h"
 
-struct FeaturesStates {
+namespace {
+
+class FeaturesStates {
+public:
     HudFeaturesStates hudFeaturesStates;
     SoundFeaturesStates soundFeaturesStates;
     VisualFeaturesStates visualFeaturesStates;
 };
+
+} // namespace
