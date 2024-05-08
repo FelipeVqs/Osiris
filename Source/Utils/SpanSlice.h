@@ -2,17 +2,27 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <concepts>
+#include <ranges>
 #include <span>
+
+template <std::size_t Size, typename T>
+concept ContiguousRange = std::ranges::contiguous_range<T> && requires { typename T::value_type; };
 
 template <std::size_t Size, typename T>
 class SpanSlice {
 public:
-    SpanSlice(std::span<T> span, std::size_t centerOffset) noexcept
+    SpanSlice(T span, std::size_t centerOffset) noexcept
+        requires ContiguousRange<T>
         : span{ span }, centerOffset{ centerOffset }
     {
+        static_assert(Size != 0, "Size must be greater than zero.");
+        if constexpr (Size > span.size()) {
+            throw std::runtime_error("Span must have at least Size elements.");
+        }
     }
 
-    [[nodiscard]] std::span<T> operator()() const noexcept
+    [[nodiscard]] const std::span<typename T::value_type> operator()() const noexcept
     {
         return span.subspan(getSliceStartOffset(), getSliceSize());
     }
@@ -20,7 +30,7 @@ public:
 private:
     [[nodiscard]] constexpr std::size_t getSliceSize() const noexcept
     {
-        return (std::min)(span.size(), Size);
+        return std::min(span.size(), Size);
     }
 
     [[nodiscard]] constexpr std::size_t getSliceStartOffset() const noexcept
@@ -32,6 +42,6 @@ private:
         return centerOffset - getSliceSize() / 2;
     }
 
-    std::span<T> span;
+    T span;
     std::size_t centerOffset;
 };
