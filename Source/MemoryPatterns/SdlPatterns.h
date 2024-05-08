@@ -4,8 +4,21 @@
 #include <MemorySearch/PatternFinder.h>
 #include <SDL/SdlFunctions.h>
 
-struct SdlPatterns {
-    [[nodiscard]] sdl3::SDL_PeepEvents** peepEventsPointer(sdl3::SDL_PeepEvents* peepEvents) const noexcept;
+// Use `std::unique_ptr` to manage the memory of `sdl3::SDL_PeepEvents**`
+class SdlPatterns {
+public:
+    explicit SdlPatterns(sdl3::SDL_PeepEvents* peepEvents) noexcept
+        : peepEventsPointer_(std::make_unique<sdl3::SDL_PeepEvents*>(peepEvents)) {}
 
-    const PatternFinder<PatternNotFoundLogger>& sdlPatternFinder;
+    [[nodiscard]] sdl3::SDL_PeepEvents** peepEventsPointer() const noexcept {
+        return peepEventsPointer_.get();
+    }
+
+    const PatternFinder<PatternNotFoundLogger>& getSdlPatternFinder() const noexcept {
+        return sdlPatternFinder_;
+    }
+
+private:
+    std::unique_ptr<sdl3::SDL_PeepEvents*> peepEventsPointer_;
+    PatternFinder<PatternNotFoundLogger> sdlPatternFinder_;
 };
