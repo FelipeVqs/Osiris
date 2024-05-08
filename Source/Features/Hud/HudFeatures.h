@@ -8,13 +8,11 @@
 #include "States/HudFeaturesStates.h"
 
 struct HudFeatures {
-    [[nodiscard]] BombTimer bombTimer() const noexcept
-    {
+    constexpr BombTimer bombTimer() const {
         return BombTimer{states.bombTimerState, hookDependencies, helpers.hudProvider};
     }
 
-    [[nodiscard]] DefusingAlert defusingAlert() const noexcept
-    {
+    constexpr DefusingAlert defusingAlert() const {
         return DefusingAlert{
             states.defusingAlertState,
             hookDependencies,
@@ -22,13 +20,12 @@ struct HudFeatures {
             helpers.panelConfigurator()
         };
     }
-    
-    [[nodiscard]] KillfeedPreserver killfeedPreserver() const noexcept
-    {
+
+    constexpr KillfeedPreserver killfeedPreserver() const {
         return KillfeedPreserver{states.killfeedPreserverState, hookDependencies, helpers.hudProvider, helpers.gameRules};
     }
 
-    HudFeaturesStates& states;
-    FeatureHelpers& helpers;
-    HookDependencies& hookDependencies;
+    HudFeaturesStates const& states;
+    FeatureHelpers const& helpers;
+    HookDependencies const& hookDependencies;
 };
