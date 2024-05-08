@@ -1,11 +1,10 @@
 #pragma once
 
+#include <HookDependencies/HookDependenciesMask.h>
 #include <CS2/Classes/Entities/CEntityInstance.h>
 #include <Features/Visuals/PlayerInformationThroughWalls/PlayerInformationThroughWalls.h>
-
 #include "EntityFromHandleFinder.h"
-
-#include <HookDependencies/HookDependenciesMask.h>
+#include <vector>
 
 class RenderingHookEntityLoop {
 public:
@@ -20,20 +19,21 @@ public:
         if (!dependencies.requestDependencies(kCrucialDependencies))
             return;
 
-        dependencies.getDependency<EntityListWalker>().iterateEntities([this](auto& entity) { handleEntity(entity); });
+        for (const auto& entity : dependencies.getDependency<EntityListWalker>().getEntities()) {
+            handleEntity(entity);
+        }
     }
 
 private:
-    static constexpr auto kCrucialDependencies{
-        HookDependenciesMask{}
-        .set<EntitiesVMTs>()
-        .set<EntityListWalker>()
+    static constexpr HookDependenciesMask kCrucialDependencies{
+        HookDependenciesMask::Feature::EntitiesVMTs,
+        HookDependenciesMask::Feature::EntityListWalker
     };
 
-    void handleEntity(cs2::CEntityInstance& entity) const noexcept
+    void handleEntity(const cs2::CEntityInstance& entity) const noexcept
     {
         if (dependencies.getDependency<EntitiesVMTs>().isPlayerPawn(entity.vmt)) {
-            auto& playerPawn = static_cast<cs2::C_CSPlayerPawn&>(entity);
+            const auto& playerPawn = static_cast<const cs2::C_CSPlayerPawn&>(entity);
             playerInformationThroughWalls.drawPlayerInformation(playerPawn);
         }
     }
