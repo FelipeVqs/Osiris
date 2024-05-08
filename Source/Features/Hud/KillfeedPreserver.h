@@ -21,7 +21,12 @@ public:
     {
     }
 
-    void run() noexcept
+    /**
+     * The main method that runs the killfeed preserver feature.
+     * If the feature is not enabled, or if any required pointers are null or invalid,
+     * the method will return early without doing anything.
+     */
+    void run() noexcept override
     {
         if (!isEnabled())
             return;
@@ -36,12 +41,15 @@ public:
 
         initSymbols();
 
-        const auto deathNotices = getDeathNotices();
+        const auto deathNoticesPanel = getDeathNoticesPanel();
+        if (!deathNoticesPanel)
+            return;
+
+        const auto deathNotices = deathNoticesPanel.children();
         if (!deathNotices)
             return;
 
-        for (int i = 0; i < deathNotices->size; ++i) {
-            const PanoramaUiPanel panel{ deathNotices->memory[i] };
+        for (const auto& panel : *deathNotices) {
             if (!panel.hasClass(state.deathNoticeKillerSymbol))
                 continue;
 
@@ -58,9 +66,13 @@ public:
         }
     }
 
-
 private:
-    [[nodiscard]] PanoramaUiPanel getDeathNoticesPanel() noexcept
+    /**
+     * Gets the panel that contains the death notices.
+     * If the panel has not been initialized yet, it will be initialized by finding it in the layout file.
+     * Returns a null pointer if the panel cannot be found or initialized.
+     */
+    PanoramaUiPanel getDeathNoticesPanel() noexcept
     {
         if (const auto deathNoticesPanel = state.deathNoticesPointer.get())
             return deathNoticesPanel;
@@ -71,13 +83,20 @@ private:
         return state.deathNoticesPointer.get();
     }
 
-    [[nodiscard]] cs2::CUIPanel::childrenVector* getDeathNotices() noexcept
+    /**
+     * Gets the vector of children panels that contain the death notices.
+     * Returns a null pointer if the vector cannot be found or initialized.
+     */
+    cs2::CUIPanel::childrenVector* getDeathNotices() noexcept
     {
         if (const auto visibleDeathNoticesPanel = getDeathNoticesPanel())
             return visibleDeathNoticesPanel.children();
         return nullptr;
     }
 
+    /**
+     * Initializes the symbol IDs that are used to identify the death notice panels and their attributes.
+     */
     void initSymbols() noexcept
     { 
         if (state.deathNoticeKillerSymbol == -1)
