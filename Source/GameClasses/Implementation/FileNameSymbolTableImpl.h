@@ -9,7 +9,22 @@ struct FileNameSymbolTableImpl {
     {
     }
 
-    [[nodiscard]] static const FileNameSymbolTableImpl& instance() noexcept;
+    ~FileNameSymbolTableImpl() = default;
+
+    FileNameSymbolTableImpl(const FileNameSymbolTableImpl&) = delete;
+    FileNameSymbolTableImpl& operator=(const FileNameSymbolTableImpl&) = delete;
 
     cs2::CUtlFilenameSymbolTable::String* string;
+
+    static FileNameSymbolTableImpl instance;
+
+    static const FileNameSymbolTableImpl& getInstance() noexcept {
+        static constexpr bool initialized = []() {
+            instance = FileNameSymbolTableImpl{ Tier0Dll() };
+            return true;
+        }();
+        return instance;
+    }
 };
+
+FileNameSymbolTableImpl FileNameSymbolTableImpl::instance;
